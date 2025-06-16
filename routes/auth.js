@@ -6,7 +6,7 @@ const { requireGuest } = require('../utils/helpers');
 
 // Login page
 router.get('/login', requireGuest, (req, res) => {
-  res.render('auth/login', {}, (err, html) => {
+  res.render('auth/login', { error: null }, (err, html) => {
     if (err) {
       console.error('Error rendering login template:', err);
       return res.status(500).send('Error rendering page');
@@ -21,7 +21,7 @@ router.get('/login', requireGuest, (req, res) => {
 
 // Register page  
 router.get('/register', requireGuest, (req, res) => {
-  res.render('auth/register', {}, (err, html) => {
+  res.render('auth/register', { error: null }, (err, html) => {
     if (err) {
       console.error('Error rendering register template:', err);
       return res.status(500).send('Error rendering page');
