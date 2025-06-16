@@ -13,12 +13,12 @@ router.get('/', requireAuth, async (req, res) => {
     const userResponse = await apiClient.getUser(user.username);
     const userData = userResponse.user;
     
-    // Get all user's files to calculate storage usage
-    const filesResponse = await apiClient.searchNodes(user.username, {
-      match: { type: 'file' }
-    });
+    // Get all user's files to calculate storage usage (excluding symlinks)
+    const filesResponse = await apiClient.searchNodes(user.username);
+    const allNodes = filesResponse.nodes || [];
     
-    const files = filesResponse.nodes || [];
+    // Filter to only include files (not symlinks or directories) for storage calculation
+    const files = allNodes.filter(node => node.type === 'file');
     const totalStorage = files.reduce((total, file) => total + (file.size || 0), 0);
     
     res.render('dashboard/index', {
@@ -61,12 +61,10 @@ router.post('/update-email', requireAuth, async (req, res) => {
     const userResponse = await apiClient.getUser(user.username);
     const userData = userResponse.user;
     
-    // Get storage info
-    const filesResponse = await apiClient.searchNodes(user.username, {
-      match: { type: 'file' }
-    });
-    
-    const files = filesResponse.nodes || [];
+    // Get storage info (excluding symlinks)
+    const filesResponse = await apiClient.searchNodes(user.username);
+    const allNodes = filesResponse.nodes || [];
+    const files = allNodes.filter(node => node.type === 'file');
     const totalStorage = files.reduce((total, file) => total + (file.size || 0), 0);
     
     res.render('dashboard/index', {
@@ -84,11 +82,9 @@ router.post('/update-email', requireAuth, async (req, res) => {
       const userResponse = await apiClient.getUser(req.session.user.username);
       const userData = userResponse.user;
       
-      const filesResponse = await apiClient.searchNodes(req.session.user.username, {
-        match: { type: 'file' }
-      });
-      
-      const files = filesResponse.nodes || [];
+      const filesResponse = await apiClient.searchNodes(req.session.user.username);
+      const allNodes = filesResponse.nodes || [];
+      const files = allNodes.filter(node => node.type === 'file');
       const totalStorage = files.reduce((total, file) => total + (file.size || 0), 0);
       
       res.render('dashboard/index', {
@@ -151,12 +147,10 @@ router.post('/change-password', requireAuth, async (req, res) => {
     const updatedUserResponse = await apiClient.getUser(user.username);
     const updatedUserData = updatedUserResponse.user;
     
-    // Get storage info
-    const filesResponse = await apiClient.searchNodes(user.username, {
-      match: { type: 'file' }
-    });
-    
-    const files = filesResponse.nodes || [];
+    // Get storage info (excluding symlinks)
+    const filesResponse = await apiClient.searchNodes(user.username);
+    const allNodes = filesResponse.nodes || [];
+    const files = allNodes.filter(node => node.type === 'file');
     const totalStorage = files.reduce((total, file) => total + (file.size || 0), 0);
     
     res.render('dashboard/index', {
@@ -174,11 +168,9 @@ router.post('/change-password', requireAuth, async (req, res) => {
       const userResponse = await apiClient.getUser(req.session.user.username);
       const userData = userResponse.user;
       
-      const filesResponse = await apiClient.searchNodes(req.session.user.username, {
-        match: { type: 'file' }
-      });
-      
-      const files = filesResponse.nodes || [];
+      const filesResponse = await apiClient.searchNodes(req.session.user.username);
+      const allNodes = filesResponse.nodes || [];
+      const files = allNodes.filter(node => node.type === 'file');
       const totalStorage = files.reduce((total, file) => total + (file.size || 0), 0);
       
       res.render('dashboard/index', {
@@ -250,11 +242,9 @@ router.post('/delete-account', requireAuth, async (req, res) => {
       const userResponse = await apiClient.getUser(req.session.user.username);
       const userData = userResponse.user;
       
-      const filesResponse = await apiClient.searchNodes(req.session.user.username, {
-        match: { type: 'file' }
-      });
-      
-      const files = filesResponse.nodes || [];
+      const filesResponse = await apiClient.searchNodes(req.session.user.username);
+      const allNodes = filesResponse.nodes || [];
+      const files = allNodes.filter(node => node.type === 'file');
       const totalStorage = files.reduce((total, file) => total + (file.size || 0), 0);
       
       res.render('dashboard/index', {
