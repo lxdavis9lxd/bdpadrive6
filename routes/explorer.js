@@ -7,7 +7,7 @@ const { requireAuth, formatFileSize, formatDate, validateTags, validateTextConte
 router.get('/', requireAuth, async (req, res) => {
   try {
     const { user } = req.session;
-    const { sort = 'name', path = '' } = req.query;
+    const { sort = 'name', path = '', error, success } = req.query;
     
     // Get all user's nodes
     const response = await apiClient.searchNodes(user.username);
@@ -56,9 +56,10 @@ router.get('/', requireAuth, async (req, res) => {
       currentDir,
       sort,
       path,
-      error: null
+      error: error || null,
+      success: success || null
     });
-  } catch (error) {
+  } catch (err) {
     res.render('explorer/index', {
       title: 'File Explorer - BDPADrive',
       user: req.session.user,
@@ -66,7 +67,8 @@ router.get('/', requireAuth, async (req, res) => {
       currentDir: null,
       sort: 'name',
       path: '',
-      error: error.message
+      error: err.message,
+      success: null
     });
   }
 });
@@ -288,6 +290,163 @@ router.post('/delete/:nodeId', requireAuth, async (req, res) => {
     }
     
     res.redirect(`/explorer?path=${encodeURIComponent(path)}`);
+  } catch (error) {
+    res.redirect(`/explorer?path=${encodeURIComponent(req.body.path || '')}&error=${encodeURIComponent(error.message)}`);
+  }
+});
+
+// Rename node
+router.post('/rename/:nodeId', requireAuth, async (req, res) => {
+  try {
+    const { user } = req.session;
+    const { nodeId } = req.params;
+    const { name, path = '' } = req.body;
+    
+    if (!name || !name.trim()) {
+      throw new Error('Name is required');
+    }
+    
+    // Get the node to check ownership
+    const response = await apiClient.getNodes(user.username, nodeId);
+    const node = response.nodes[0];
+    
+    if (!node) {
+      throw new Error('File or folder not found');
+    }
+    
+    if (node.owner !== user.username) {
+      throw new Error('You can only rename files and folders you own');
+    }
+    
+    await apiClient.updateNode(user.username, nodeId, { name: name.trim() });
+    
+    res.redirect(`/explorer?path=${encodeURIComponent(path)}&success=${encodeURIComponent('Item renamed successfully')}`);
+  } catch (error) {
+    res.redirect(`/explorer?path=${encodeURIComponent(req.body.path || '')}&error=${encodeURIComponent(error.message)}`);
+  }
+});
+
+// Change ownership
+router.post('/change-owner/:nodeId', requireAuth, async (req, res) => {
+  try {
+    const { user } = req.session;
+    const { nodeId } = req.params;
+    const { newOwner, path = '' } = req.body;
+    
+    if (!newOwner || !newOwner.trim()) {
+      throw new Error('New owner username is required');
+    }
+    
+    // Get the node to check ownership
+    const response = await apiClient.getNodes(user.username, nodeId);
+    const node = response.nodes[0];
+    
+    if (!node) {
+      throw new Error('File or folder not found');
+    }
+    
+    if (node.owner !== user.username) {
+      throw new Error('You can only change ownership of files and folders you own');
+    }
+    
+    // Verify the new owner exists by trying to get their user data
+    try {
+      await apiClient.getUser(newOwner.trim());
+    } catch (error) {
+      throw new Error('Target user does not exist');
+    }
+    
+    await apiClient.updateNode(user.username, nodeId, { owner: newOwner.trim() });
+    
+    res.redirect(`/explorer?path=${encodeURIComponent(path)}&success=${encodeURIComponent('Ownership changed successfully')}`);
+  } catch (error) {
+    res.redirect(`/explorer?path=${encodeURIComponent(req.body.path || '')}&error=${encodeURIComponent(error.message)}`);
+  }
+});
+
+// Move node to folder
+router.post('/move/:nodeId', requireAuth, async (req, res) => {
+  try {
+    const { user } = req.session;
+    const { nodeId } = req.params;
+    const { targetFolderId, sourcePath = '', targetPath = '' } = req.body;
+    
+    // Get the node to check ownership
+    const response = await apiClient.getNodes(user.username, nodeId);
+    const node = response.nodes[0];
+    
+    if (!node) {
+      throw new Error('File or folder not found');
+    }
+    
+    if (node.owner !== user.username) {
+      throw new Error('You can only move files and folders you own');
+    }
+    
+    // Remove from source folder if it's in one
+    if (sourcePath) {
+      const sourceResponse = await apiClient.getNodes(user.username, sourcePath);
+      const sourceFolder = sourceResponse.nodes[0];
+      
+      if (sourceFolder && sourceFolder.type === 'directory') {
+        const updatedContents = sourceFolder.contents.filter(id => id !== nodeId);
+        await apiClient.updateNode(user.username, sourcePath, { contents: updatedContents });
+      }
+    }
+    
+    // Add to target folder if specified
+    if (targetFolderId && targetFolderId !== 'root') {
+      const targetResponse = await apiClient.getNodes(user.username, targetFolderId);
+      const targetFolder = targetResponse.nodes[0];
+      
+      if (!targetFolder || targetFolder.type !== 'directory') {
+        throw new Error('Target folder not found');
+      }
+      
+      if (targetFolder.owner !== user.username) {
+        throw new Error('You can only move items to folders you own');
+      }
+      
+      const updatedContents = [...targetFolder.contents, nodeId];
+      await apiClient.updateNode(user.username, targetFolderId, { contents: updatedContents });
+    }
+    
+    res.redirect(`/explorer?path=${encodeURIComponent(targetPath)}&success=${encodeURIComponent('Item moved successfully')}`);
+  } catch (error) {
+    res.redirect(`/explorer?path=${encodeURIComponent(req.body.sourcePath || '')}&error=${encodeURIComponent(error.message)}`);
+  }
+});
+
+// Update tags for file
+router.post('/update-tags/:nodeId', requireAuth, async (req, res) => {
+  try {
+    const { user } = req.session;
+    const { nodeId } = req.params;
+    const { tags, path = '' } = req.body;
+    
+    // Get the node to check ownership and type
+    const response = await apiClient.getNodes(user.username, nodeId);
+    const node = response.nodes[0];
+    
+    if (!node) {
+      throw new Error('File not found');
+    }
+    
+    if (node.type !== 'file') {
+      throw new Error('Tags can only be added to files');
+    }
+    
+    if (node.owner !== user.username) {
+      throw new Error('You can only modify tags on files you own');
+    }
+    
+    // Validate and process tags
+    const tagArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+    const validatedTags = validateTags(tagArray);
+    
+    await apiClient.updateNode(user.username, nodeId, { tags: validatedTags });
+    
+    res.redirect(`/explorer?path=${encodeURIComponent(path)}&success=${encodeURIComponent('Tags updated successfully')}`);
   } catch (error) {
     res.redirect(`/explorer?path=${encodeURIComponent(req.body.path || '')}&error=${encodeURIComponent(error.message)}`);
   }

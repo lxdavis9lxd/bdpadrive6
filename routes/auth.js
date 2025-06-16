@@ -6,19 +6,31 @@ const { requireGuest } = require('../utils/helpers');
 
 // Login page
 router.get('/login', requireGuest, (req, res) => {
-  res.render('auth/login', { 
-    title: 'Login - BDPADrive',
-    error: null,
-    user: null
+  res.render('auth/login', {}, (err, html) => {
+    if (err) {
+      console.error('Error rendering login template:', err);
+      return res.status(500).send('Error rendering page');
+    }
+    res.render('layout', { 
+      title: 'Login - BDPADrive',
+      user: null,
+      content: html
+    });
   });
 });
 
-// Register page
+// Register page  
 router.get('/register', requireGuest, (req, res) => {
-  res.render('auth/register', { 
-    title: 'Register - BDPADrive',
-    error: null,
-    user: null
+  res.render('auth/register', {}, (err, html) => {
+    if (err) {
+      console.error('Error rendering register template:', err);
+      return res.status(500).send('Error rendering page');
+    }
+    res.render('layout', { 
+      title: 'Register - BDPADrive',
+      user: null,
+      content: html
+    });
   });
 });
 
@@ -49,10 +61,16 @@ router.post('/login', requireGuest, async (req, res) => {
 
     res.redirect('/explorer');
   } catch (error) {
-    res.render('auth/login', { 
-      title: 'Login - BDPADrive',
-      error: error.message,
-      user: null
+    res.render('auth/login', { error: error.message }, (err, html) => {
+      if (err) {
+        console.error('Error rendering login template:', err);
+        return res.status(500).send('Error rendering page');
+      }
+      res.render('layout', { 
+        title: 'Login - BDPADrive',
+        user: null,
+        content: html
+      });
     });
   }
 });
@@ -97,10 +115,16 @@ router.post('/register', requireGuest, async (req, res) => {
 
     res.redirect('/explorer');
   } catch (error) {
-    res.render('auth/register', { 
-      title: 'Register - BDPADrive',
-      error: error.message,
-      user: null
+    res.render('auth/register', { error: error.message }, (err, html) => {
+      if (err) {
+        console.error('Error rendering register template:', err);
+        return res.status(500).send('Error rendering page');
+      }
+      res.render('layout', { 
+        title: 'Register - BDPADrive',
+        user: null,
+        content: html
+      });
     });
   }
 });

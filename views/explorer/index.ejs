@@ -37,6 +37,179 @@
 </div>
 <% } %>
 
+<% if (typeof success !== 'undefined' && success) { %>
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="fas fa-check-circle"></i> <%= success %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<% } %>
+
+<!-- Rename Modal -->
+<div class="modal fade" id="renameModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Rename Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="" method="POST" id="renameForm">
+                <div class="modal-body">
+                    <input type="hidden" name="path" value="<%= path %>">
+                    <div class="mb-3">
+                        <label for="renameName" class="form-label">New Name</label>
+                        <input type="text" class="form-control" id="renameName" name="name" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Rename</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Tags Modal -->
+<div class="modal fade" id="tagsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Tags</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="" method="POST" id="tagsForm">
+                <div class="modal-body">
+                    <input type="hidden" name="path" value="<%= path %>">
+                    <div class="mb-3">
+                        <label for="tagsInput" class="form-label">Tags (comma-separated)</label>
+                        <input type="text" class="form-control" id="tagsInput" name="tags" 
+                               placeholder="tag1, tag2, tag3">
+                        <div class="form-text">Enter tags separated by commas. Tags can only contain letters, numbers, and hyphens.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Tags</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Move Modal -->
+<div class="modal fade" id="moveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Move Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="" method="POST" id="moveForm">
+                <div class="modal-body">
+                    <input type="hidden" name="sourcePath" value="<%= path %>">
+                    <input type="hidden" name="targetPath" value="">
+                    <div class="mb-3">
+                        <label for="targetFolder" class="form-label">Target Folder</label>
+                        <select class="form-select" id="targetFolder" name="targetFolderId" required>
+                            <option value="root">Root Directory</option>
+                            <% nodes.filter(n => n.type === 'directory').forEach(folder => { %>
+                                <option value="<%= folder.node_id %>"><%= folder.name %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Move</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Change Owner Modal -->
+<div class="modal fade" id="ownerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Change Owner</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="" method="POST" id="ownerForm">
+                <div class="modal-body">
+                    <input type="hidden" name="path" value="<%= path %>">
+                    <div class="mb-3">
+                        <label for="newOwner" class="form-label">New Owner Username</label>
+                        <input type="text" class="form-control" id="newOwner" name="newOwner" required>
+                        <div class="form-text">Enter the username of the new owner. The user must exist.</div>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Warning:</strong> Once you change ownership, you will no longer be able to modify this item unless the new owner changes it back.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Change Owner</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle modal data binding
+document.addEventListener('DOMContentLoaded', function() {
+    // Rename modal
+    document.querySelectorAll('.rename-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const nodeId = this.dataset.nodeId;
+            const name = this.dataset.name;
+            
+            document.getElementById('renameForm').action = `/explorer/rename/${nodeId}`;
+            document.getElementById('renameName').value = name;
+        });
+    });
+    
+    // Tags modal
+    document.querySelectorAll('.tags-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const nodeId = this.dataset.nodeId;
+            const tags = this.dataset.tags;
+            
+            document.getElementById('tagsForm').action = `/explorer/update-tags/${nodeId}`;
+            document.getElementById('tagsInput').value = tags;
+        });
+    });
+    
+    // Move modal
+    document.querySelectorAll('.move-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const nodeId = this.dataset.nodeId;
+            
+            document.getElementById('moveForm').action = `/explorer/move/${nodeId}`;
+        });
+    });
+    
+    // Owner modal
+    document.querySelectorAll('.owner-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const nodeId = this.dataset.nodeId;
+            const owner = this.dataset.owner;
+            
+            document.getElementById('ownerForm').action = `/explorer/change-owner/${nodeId}`;
+            document.getElementById('newOwner').value = '';
+        });
+    });
+    
+    // Update target path when target folder changes
+    document.getElementById('targetFolder').addEventListener('change', function() {
+        const targetPath = this.value === 'root' ? '' : this.value;
+        document.querySelector('input[name="targetPath"]').value = targetPath;
+    });
+});
+</script>
+
 <!-- Sort Controls -->
 <div class="row mb-3">
     <div class="col-md-6">
@@ -114,13 +287,91 @@
                                 <li><a class="dropdown-item" href="/editor/<%= node.node_id %>">
                                     <i class="fas fa-edit"></i> Edit
                                 </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item rename-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>" 
+                                       data-name="<%= node.name %>"
+                                       data-bs-toggle="modal" data-bs-target="#renameModal">
+                                    <i class="fas fa-i-cursor"></i> Rename
+                                </a></li>
+                                <li><a class="dropdown-item tags-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>" 
+                                       data-tags="<%= (node.tags || []).join(', ') %>"
+                                       data-bs-toggle="modal" data-bs-target="#tagsModal">
+                                    <i class="fas fa-tags"></i> Edit Tags
+                                </a></li>
+                                <li><a class="dropdown-item move-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>"
+                                       data-bs-toggle="modal" data-bs-target="#moveModal">
+                                    <i class="fas fa-arrows-alt"></i> Move
+                                </a></li>
+                                <li><a class="dropdown-item owner-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>" 
+                                       data-owner="<%= node.owner %>"
+                                       data-bs-toggle="modal" data-bs-target="#ownerModal">
+                                    <i class="fas fa-user-tag"></i> Change Owner
+                                </a></li>
                             <% } else if (node.type === 'directory') { %>
                                 <li><a class="dropdown-item" href="/explorer?path=<%= node.node_id %>">
                                     <i class="fas fa-folder-open"></i> Open
                                 </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item rename-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>" 
+                                       data-name="<%= node.name %>"
+                                       data-bs-toggle="modal" data-bs-target="#renameModal">
+                                    <i class="fas fa-i-cursor"></i> Rename
+                                </a></li>
+                                <li><a class="dropdown-item move-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>"
+                                       data-bs-toggle="modal" data-bs-target="#moveModal">
+                                    <i class="fas fa-arrows-alt"></i> Move
+                                </a></li>
+                                <li><a class="dropdown-item owner-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>" 
+                                       data-owner="<%= node.owner %>"
+                                       data-bs-toggle="modal" data-bs-target="#ownerModal">
+                                    <i class="fas fa-user-tag"></i> Change Owner
+                                </a></li>
                             <% } else if (node.type === 'symlink' && !node.isBroken) { %>
                                 <li><a class="dropdown-item" href="/editor/<%= node.contents[0] %>">
                                     <i class="fas fa-external-link-alt"></i> Follow Link
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item rename-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>" 
+                                       data-name="<%= node.name %>"
+                                       data-bs-toggle="modal" data-bs-target="#renameModal">
+                                    <i class="fas fa-i-cursor"></i> Rename
+                                </a></li>
+                                <li><a class="dropdown-item move-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>"
+                                       data-bs-toggle="modal" data-bs-target="#moveModal">
+                                    <i class="fas fa-arrows-alt"></i> Move
+                                </a></li>
+                                <li><a class="dropdown-item owner-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>" 
+                                       data-owner="<%= node.owner %>"
+                                       data-bs-toggle="modal" data-bs-target="#ownerModal">
+                                    <i class="fas fa-user-tag"></i> Change Owner
+                                </a></li>
+                            <% } else if (node.type === 'symlink' && node.isBroken) { %>
+                                <li><a class="dropdown-item rename-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>" 
+                                       data-name="<%= node.name %>"
+                                       data-bs-toggle="modal" data-bs-target="#renameModal">
+                                    <i class="fas fa-i-cursor"></i> Rename
+                                </a></li>
+                                <li><a class="dropdown-item move-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>"
+                                       data-bs-toggle="modal" data-bs-target="#moveModal">
+                                    <i class="fas fa-arrows-alt"></i> Move
+                                </a></li>
+                                <li><a class="dropdown-item owner-btn" href="#" 
+                                       data-node-id="<%= node.node_id %>" 
+                                       data-owner="<%= node.owner %>"
+                                       data-bs-toggle="modal" data-bs-target="#ownerModal">
+                                    <i class="fas fa-user-tag"></i> Change Owner
                                 </a></li>
                             <% } %>
                             <li><hr class="dropdown-divider"></li>

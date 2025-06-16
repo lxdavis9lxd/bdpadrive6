@@ -13,7 +13,8 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <i class="fas fa-cloud"></i> BDPADrive
+                <img src="/images/bdpa-logo.png" alt="BDPA" height="30" class="me-2">
+                BDPADrive
             </a>
             
             <% if (user) { %>
@@ -33,6 +34,15 @@
                         </li>
                     </ul>
                 </div>
+            </div>
+            <% } else { %>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/auth/login">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+                <a class="nav-link" href="/auth/register">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </a>
             </div>
             <% } %>
         </div>
