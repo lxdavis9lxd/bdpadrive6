@@ -1,0 +1,289 @@
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Editor Panel -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-edit"></i> Editing: <%= node.name %>
+                </h4>
+                <div class="btn-group">
+                    <form action="/editor/<%= node.node_id %>/save" method="POST" class="d-inline" id="saveForm">
+                        <button type="submit" class="btn btn-success" id="saveBtn">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                    </form>
+                    <form action="/editor/<%= node.node_id %>/release-lock" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body">
+                <% if (error) { %>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> <%= error %>
+                </div>
+                <% } %>
+                
+                <% if (success) { %>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> <%= success %>
+                </div>
+                <% } %>
+
+                <form action="/editor/<%= node.node_id %>/save" method="POST" id="editorForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">File Name</label>
+                        <input type="text" class="form-control" id="name" name="name" value="<%= node.name %>" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Tags</label>
+                        <input type="text" class="form-control" id="tags" name="tags" 
+                               value="<%= node.tags ? node.tags.join(', ') : '' %>"
+                               placeholder="tag1, tag2, tag3">
+                        <div class="form-text">
+                            Enter up to 5 alphanumeric tags separated by commas
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label for="text" class="form-label">Content</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="previewMode">
+                                <label class="form-check-label" for="previewMode">
+                                    Preview Mode
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div id="editorContainer">
+                            <textarea class="form-control" id="text" name="text" rows="20"><%= node.text || '' %></textarea>
+                        </div>
+                        
+                        <div id="previewContainer" style="display: none;">
+                            <div class="border rounded p-3 bg-light" style="min-height: 400px;" id="markdownPreview"></div>
+                        </div>
+                        
+                        <div class="form-text">
+                            File content is written in Markdown format. Maximum size: 10KB.
+                            Auto-save occurs every 30 seconds.
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- File Info Panel -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> File Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-5">File ID:</dt>
+                    <dd class="col-sm-7"><code><%= node.node_id %></code></dd>
+                    
+                    <dt class="col-sm-5">Owner:</dt>
+                    <dd class="col-sm-7"><%= node.owner %></dd>
+                    
+                    <dt class="col-sm-5">Size:</dt>
+                    <dd class="col-sm-7"><%= node.size ? (node.size + ' bytes') : '0 bytes' %></dd>
+                    
+                    <dt class="col-sm-5">Created:</dt>
+                    <dd class="col-sm-7"><%= new Date(node.createdAt).toLocaleString() %></dd>
+                    
+                    <dt class="col-sm-5">Modified:</dt>
+                    <dd class="col-sm-7"><%= new Date(node.modifiedAt || node.createdAt).toLocaleString() %></dd>
+                    
+                    <% if (node.lock) { %>
+                    <dt class="col-sm-5">Locked by:</dt>
+                    <dd class="col-sm-7">
+                        <span class="badge bg-warning">
+                            <i class="fas fa-lock"></i> <%= node.lock.user %>
+                        </span>
+                    </dd>
+                    <% } %>
+                </dl>
+                
+                <hr>
+                
+                <!-- Quick Actions -->
+                <div class="d-grid gap-2">
+                    <a href="/explorer" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-folder"></i> Back to Explorer
+                    </a>
+                    
+                    <form action="/editor/<%= node.node_id %>/delete" method="POST" 
+                          onsubmit="return confirm('Are you sure you want to delete this file? This action cannot be undone.')">
+                        <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                            <i class="fas fa-trash"></i> Delete File
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Markdown Cheat Sheet -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fab fa-markdown"></i> Markdown Cheat Sheet
+                </h6>
+            </div>
+            <div class="card-body">
+                <small>
+                    <strong>Headers:</strong><br>
+                    <code># H1</code><br>
+                    <code>## H2</code><br>
+                    <code>### H3</code><br><br>
+                    
+                    <strong>Text:</strong><br>
+                    <code>**bold**</code><br>
+                    <code>*italic*</code><br>
+                    <code>`code`</code><br><br>
+                    
+                    <strong>Lists:</strong><br>
+                    <code>- Item 1</code><br>
+                    <code>- Item 2</code><br><br>
+                    
+                    <strong>Links:</strong><br>
+                    <code>[text](url)</code><br><br>
+                    
+                    <strong>Code blocks:</strong><br>
+                    <code>```language<br>code here<br>```</code>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize markdown parser
+const md = window.markdownit();
+
+// Auto-save functionality
+let autoSaveTimer;
+let hasUnsavedChanges = false;
+
+function resetAutoSave() {
+    if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+    }
+    autoSaveTimer = setTimeout(autoSave, 30000); // 30 seconds
+}
+
+function autoSave() {
+    if (hasUnsavedChanges) {
+        const form = document.getElementById('editorForm');
+        const formData = new FormData(form);
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                hasUnsavedChanges = false;
+                showAutoSaveIndicator();
+            }
+        }).catch(error => {
+            console.error('Auto-save failed:', error);
+        });
+    }
+    resetAutoSave();
+}
+
+function showAutoSaveIndicator() {
+    const saveBtn = document.getElementById('saveBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-check"></i> Auto-saved';
+    saveBtn.classList.remove('btn-success');
+    saveBtn.classList.add('btn-outline-success');
+    
+    setTimeout(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.classList.remove('btn-outline-success');
+        saveBtn.classList.add('btn-success');
+    }, 2000);
+}
+
+// Track changes
+document.addEventListener('DOMContentLoaded', function() {
+    const textArea = document.getElementById('text');
+    const nameInput = document.getElementById('name');
+    const tagsInput = document.getElementById('tags');
+    const previewMode = document.getElementById('previewMode');
+    const editorContainer = document.getElementById('editorContainer');
+    const previewContainer = document.getElementById('previewContainer');
+    const markdownPreview = document.getElementById('markdownPreview');
+    
+    // Track changes for auto-save
+    [textArea, nameInput, tagsInput].forEach(input => {
+        input.addEventListener('input', () => {
+            hasUnsavedChanges = true;
+            resetAutoSave();
+        });
+    });
+    
+    // Preview mode toggle
+    previewMode.addEventListener('change', function() {
+        if (this.checked) {
+            // Show preview
+            const markdownText = textArea.value;
+            markdownPreview.innerHTML = md.render(markdownText);
+            editorContainer.style.display = 'none';
+            previewContainer.style.display = 'block';
+        } else {
+            // Show editor
+            editorContainer.style.display = 'block';
+            previewContainer.style.display = 'none';
+        }
+    });
+    
+    // Update preview when text changes
+    textArea.addEventListener('input', function() {
+        if (previewMode.checked) {
+            markdownPreview.innerHTML = md.render(this.value);
+        }
+    });
+    
+    // Character count
+    textArea.addEventListener('input', function() {
+        const text = this.value;
+        const byteSize = new Blob([text]).size;
+        const maxSize = 10 * 1024; // 10KB
+        
+        let helpText = this.parentNode.querySelector('.form-text');
+        const percentage = (byteSize / maxSize * 100).toFixed(1);
+        
+        if (byteSize > maxSize) {
+            helpText.className = 'form-text text-danger';
+            helpText.innerHTML = `File content exceeds maximum size of 10KB (${percentage}%). Auto-save occurs every 30 seconds.`;
+        } else {
+            helpText.className = 'form-text';
+            helpText.innerHTML = `File content is written in Markdown format. Current size: ${(byteSize / 1024).toFixed(1)}KB (${percentage}% of 10KB limit). Auto-save occurs every 30 seconds.`;
+        }
+    });
+    
+    // Initial auto-save timer
+    resetAutoSave();
+    
+    // Trigger initial character count
+    textArea.dispatchEvent(new Event('input'));
+});
+
+// Handle page unload with unsaved changes
+window.addEventListener('beforeunload', function(e) {
+    if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+    }
+});
+</script>

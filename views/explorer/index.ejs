@@ -1,0 +1,177 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>
+            <i class="fas fa-folder-open"></i>
+            <% if (currentDir) { %>
+                <%= currentDir.name %>
+            <% } else { %>
+                File Explorer
+            <% } %>
+        </h2>
+        <% if (currentDir) { %>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/explorer">Root</a></li>
+                <li class="breadcrumb-item active" aria-current="page"><%= currentDir.name %></li>
+            </ol>
+        </nav>
+        <% } %>
+    </div>
+    
+    <div class="btn-group">
+        <a href="/explorer/new-file?path=<%= encodeURIComponent(path) %>" class="btn btn-primary">
+            <i class="fas fa-file-plus"></i> New File
+        </a>
+        <a href="/explorer/new-folder?path=<%= encodeURIComponent(path) %>" class="btn btn-outline-primary">
+            <i class="fas fa-folder-plus"></i> New Folder
+        </a>
+        <a href="/explorer/new-symlink?path=<%= encodeURIComponent(path) %>" class="btn btn-outline-secondary">
+            <i class="fas fa-link"></i> New Symlink
+        </a>
+    </div>
+</div>
+
+<% if (error) { %>
+<div class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle"></i> <%= error %>
+</div>
+<% } %>
+
+<!-- Sort Controls -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="btn-group" role="group" aria-label="Sort options">
+            <a href="?sort=name&path=<%= encodeURIComponent(path) %>" 
+               class="btn <%= sort === 'name' ? 'btn-primary' : 'btn-outline-primary' %>">
+                <i class="fas fa-sort-alpha-down"></i> Name
+            </a>
+            <a href="?sort=createdAt&path=<%= encodeURIComponent(path) %>" 
+               class="btn <%= sort === 'createdAt' ? 'btn-primary' : 'btn-outline-primary' %>">
+                <i class="fas fa-calendar-plus"></i> Created
+            </a>
+            <a href="?sort=modifiedAt&path=<%= encodeURIComponent(path) %>" 
+               class="btn <%= sort === 'modifiedAt' ? 'btn-primary' : 'btn-outline-primary' %>">
+                <i class="fas fa-calendar-alt"></i> Modified
+            </a>
+            <a href="?sort=size&path=<%= encodeURIComponent(path) %>" 
+               class="btn <%= sort === 'size' ? 'btn-primary' : 'btn-outline-primary' %>">
+                <i class="fas fa-weight-hanging"></i> Size
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- File Listing -->
+<% if (nodes.length === 0) { %>
+<div class="text-center py-5">
+    <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+    <h5 class="text-muted">This folder is empty</h5>
+    <p class="text-muted">Create your first file or folder to get started</p>
+</div>
+<% } else { %>
+<div class="row">
+    <% nodes.forEach(node => { %>
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 file-card" data-node-type="<%= node.type %>">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-1">
+                            <% if (node.type === 'file') { %>
+                                <i class="fas fa-file-alt text-primary"></i>
+                            <% } else if (node.type === 'directory') { %>
+                                <i class="fas fa-folder text-warning"></i>
+                            <% } else if (node.type === 'symlink') { %>
+                                <i class="fas fa-link <%= node.isBroken ? 'text-danger' : 'text-info' %>"></i>
+                            <% } %>
+                            <%= node.name %>
+                            <% if (node.isBroken) { %>
+                                <span class="badge bg-danger ms-1">Broken</span>
+                            <% } %>
+                        </h6>
+                        
+                        <% if (node.type === 'file' && node.tags && node.tags.length > 0) { %>
+                        <div class="mb-2">
+                            <% node.tags.forEach(tag => { %>
+                                <span class="badge bg-secondary me-1"><%= tag %></span>
+                            <% }) %>
+                        </div>
+                        <% } %>
+                        
+                        <small class="text-muted d-block">
+                            Size: <%= node.formattedSize %><br>
+                            Created: <%= node.formattedCreatedAt %><br>
+                            Modified: <%= node.formattedModifiedAt %>
+                        </small>
+                    </div>
+                    
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <% if (node.type === 'file') { %>
+                                <li><a class="dropdown-item" href="/editor/<%= node.node_id %>">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a></li>
+                            <% } else if (node.type === 'directory') { %>
+                                <li><a class="dropdown-item" href="/explorer?path=<%= node.node_id %>">
+                                    <i class="fas fa-folder-open"></i> Open
+                                </a></li>
+                            <% } else if (node.type === 'symlink' && !node.isBroken) { %>
+                                <li><a class="dropdown-item" href="/editor/<%= node.contents[0] %>">
+                                    <i class="fas fa-external-link-alt"></i> Follow Link
+                                </a></li>
+                            <% } %>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="/explorer/delete/<%= node.node_id %>" method="POST" class="d-inline"
+                                      onsubmit="return confirm('Are you sure you want to delete this <%= node.type %>?')">
+                                    <input type="hidden" name="path" value="<%= path %>">
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- File Preview for text files -->
+                <% if (node.type === 'file' && node.text) { %>
+                <div class="file-preview" data-text="<%= encodeURIComponent(node.text) %>">
+                    <div class="preview-loading">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading preview...</span>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+            </div>
+            
+            <div class="card-footer">
+                <% if (node.type === 'file') { %>
+                    <a href="/editor/<%= node.node_id %>" class="btn btn-sm btn-primary">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                <% } else if (node.type === 'directory') { %>
+                    <a href="/explorer?path=<%= node.node_id %>" class="btn btn-sm btn-primary">
+                        <i class="fas fa-folder-open"></i> Open
+                    </a>
+                <% } else if (node.type === 'symlink') { %>
+                    <% if (node.isBroken) { %>
+                        <span class="text-danger">
+                            <i class="fas fa-unlink"></i> Broken Link
+                        </span>
+                    <% } else { %>
+                        <a href="/editor/<%= node.contents[0] %>" class="btn btn-sm btn-info">
+                            <i class="fas fa-external-link-alt"></i> Follow
+                        </a>
+                    <% } %>
+                <% } %>
+            </div>
+        </div>
+    </div>
+    <% }) %>
+</div>
+<% } %>

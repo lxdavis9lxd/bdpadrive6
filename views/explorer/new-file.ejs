@@ -1,0 +1,89 @@
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-file-plus"></i> Create New File
+                </h4>
+            </div>
+            <div class="card-body">
+                <% if (error) { %>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> <%= error %>
+                </div>
+                <% } %>
+
+                <form action="/explorer/new-file" method="POST">
+                    <input type="hidden" name="path" value="<%= path %>">
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">File Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required
+                               placeholder="my-document.md">
+                        <div class="form-text">Enter the name for your new file</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Tags <span class="text-muted">(optional)</span></label>
+                        <input type="text" class="form-control" id="tags" name="tags"
+                               placeholder="tag1, tag2, tag3">
+                        <div class="form-text">
+                            Enter up to 5 alphanumeric tags separated by commas. Tags help organize and search your files.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="text" class="form-label">Content <span class="text-muted">(optional)</span></label>
+                        <textarea class="form-control" id="text" name="text" rows="12"
+                                  placeholder="# My Document
+
+Write your content here using Markdown...
+
+## Features
+- **Bold text**
+- *Italic text*
+- [Links](https://example.com)
+- Code blocks
+
+```javascript
+console.log('Hello, world!');
+```"></textarea>
+                        <div class="form-text">
+                            File content is written in Markdown format. Maximum size: 10KB.
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create File
+                        </button>
+                        <a href="/explorer?path=<%= encodeURIComponent(path) %>" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Real-time character count for text area
+document.getElementById('text').addEventListener('input', function() {
+    const text = this.value;
+    const byteSize = new Blob([text]).size;
+    const maxSize = 10 * 1024; // 10KB
+    
+    // Update character count display
+    let helpText = this.nextElementSibling;
+    const percentage = (byteSize / maxSize * 100).toFixed(1);
+    
+    if (byteSize > maxSize) {
+        helpText.className = 'form-text text-danger';
+        helpText.textContent = `File content exceeds maximum size of 10KB (${percentage}%)`;
+    } else {
+        helpText.className = 'form-text';
+        helpText.textContent = `File content is written in Markdown format. Current size: ${(byteSize / 1024).toFixed(1)}KB (${percentage}% of 10KB limit)`;
+    }
+});
+</script>
