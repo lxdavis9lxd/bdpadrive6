@@ -1,0 +1,153 @@
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-search"></i> Search Files & Folders</h2>
+        
+        <% if (error) { %>
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> <%= error %>
+        </div>
+        <% } %>
+        
+        <!-- Search Form -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" action="/search">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="q" class="form-label">Search Query</label>
+                            <input type="text" class="form-control" id="q" name="q" 
+                                   value="<%= query.q || '' %>" 
+                                   placeholder="Search by name, content, or tags">
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label for="type" class="form-label">Type</label>
+                            <select class="form-select" id="type" name="type">
+                                <option value="all" <%= query.type === 'all' || !query.type ? 'selected' : '' %>>All</option>
+                                <option value="file" <%= query.type === 'file' ? 'selected' : '' %>>Files</option>
+                                <option value="directory" <%= query.type === 'directory' ? 'selected' : '' %>>Folders</option>
+                                <option value="symlink" <%= query.type === 'symlink' ? 'selected' : '' %>>Symlinks</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label for="tags" class="form-label">Tags</label>
+                            <input type="text" class="form-control" id="tags" name="tags" 
+                                   value="<%= query.tags || '' %>" 
+                                   placeholder="tag1, tag2, tag3">
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label for="sortBy" class="form-label">Sort By</label>
+                            <select class="form-select" id="sortBy" name="sortBy">
+                                <option value="modifiedAt" <%= query.sortBy === 'modifiedAt' || !query.sortBy ? 'selected' : '' %>>Modified Time</option>
+                                <option value="createdAt" <%= query.sortBy === 'createdAt' ? 'selected' : '' %>>Created Time</option>
+                                <option value="name" <%= query.sortBy === 'name' ? 'selected' : '' %>>Name</option>
+                                <option value="size" <%= query.sortBy === 'size' ? 'selected' : '' %>>Size</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-3">
+                            <label for="dateFrom" class="form-label">Created From</label>
+                            <input type="date" class="form-control" id="dateFrom" name="dateFrom" 
+                                   value="<%= query.dateFrom || '' %>">
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label for="dateTo" class="form-label">Created To</label>
+                            <input type="date" class="form-control" id="dateTo" name="dateTo" 
+                                   value="<%= query.dateTo || '' %>">
+                        </div>
+                        
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                            <a href="/search" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Clear
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Search Results -->
+        <% if (typeof resultCount !== 'undefined') { %>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>Search Results (<%= resultCount %> found)</h4>
+        </div>
+        
+        <% if (results.length === 0 && (query.q || query.type || query.tags || query.dateFrom || query.dateTo)) { %>
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No results found</h5>
+            <p class="text-muted">Try adjusting your search criteria</p>
+        </div>
+        <% } else if (results.length > 0) { %>
+        <div class="row">
+            <% results.forEach(node => { %>
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <% if (node.type === 'file') { %>
+                                <i class="fas fa-file-alt text-primary"></i>
+                            <% } else if (node.type === 'directory') { %>
+                                <i class="fas fa-folder text-warning"></i>
+                            <% } else if (node.type === 'symlink') { %>
+                                <i class="fas fa-link text-info"></i>
+                            <% } %>
+                            <%= node.name %>
+                        </h6>
+                        
+                        <% if (node.type === 'file' && node.tags && node.tags.length > 0) { %>
+                        <div class="mb-2">
+                            <% node.tags.forEach(tag => { %>
+                                <span class="badge bg-secondary me-1"><%= tag %></span>
+                            <% }) %>
+                        </div>
+                        <% } %>
+                        
+                        <% if (node.type === 'file' && node.text) { %>
+                        <p class="card-text text-muted small">
+                            <%= node.text.substring(0, 100) %><%= node.text.length > 100 ? '...' : '' %>
+                        </p>
+                        <% } %>
+                        
+                        <small class="text-muted d-block">
+                            Size: <%= node.formattedSize %><br>
+                            Created: <%= node.formattedCreatedAt %><br>
+                            <% if (node.type === 'file') { %>
+                            Modified: <%= node.formattedModifiedAt %>
+                            <% } %>
+                        </small>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <% if (node.type === 'file') { %>
+                            <a href="/editor/<%= node.node_id %>" class="btn btn-sm btn-primary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                        <% } else if (node.type === 'directory') { %>
+                            <a href="/explorer?path=<%= node.node_id %>" class="btn btn-sm btn-primary">
+                                <i class="fas fa-folder-open"></i> Open
+                            </a>
+                        <% } else if (node.type === 'symlink') { %>
+                            <% if (node.contents && node.contents.length > 0) { %>
+                                <a href="/editor/<%= node.contents[0] %>" class="btn btn-sm btn-info">
+                                    <i class="fas fa-external-link-alt"></i> Follow
+                                </a>
+                            <% } %>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            <% }) %>
+        </div>
+        <% } %>
+        <% } %>
+    </div>
+</div>

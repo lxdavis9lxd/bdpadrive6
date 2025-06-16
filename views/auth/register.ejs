@@ -28,13 +28,31 @@
                     
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required minlength="6">
-                        <div class="form-text">Password must be at least 6 characters long</div>
+                        <input type="password" class="form-control" id="password" name="password" required minlength="11">
+                        <div class="progress mt-2" style="height: 5px;">
+                            <div class="progress-bar" id="passwordStrength" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="form-text">
+                            <span id="passwordStrengthText">Password strength will be shown here</span><br>
+                            <small>Weak: ≤10 chars, Moderate: 11-17 chars, Strong: 18+ chars</small>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
                         <label for="confirmPassword" class="form-label">Confirm Password</label>
                         <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Security Challenge</label>
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <span id="captchaQuestion"></span>
+                            </div>
+                        </div>
+                        <input type="number" class="form-control mt-2" id="captchaAnswer" name="captchaAnswer" required
+                               placeholder="Enter your answer">
+                        <input type="hidden" id="captchaExpected" name="captchaExpected">
                     </div>
                     
                     <div class="d-grid">
@@ -51,3 +69,101 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const strengthBar = document.getElementById('passwordStrength');
+    const strengthText = document.getElementById('passwordStrengthText');
+    const captchaQuestion = document.getElementById('captchaQuestion');
+    const captchaExpected = document.getElementById('captchaExpected');
+    const captchaAnswer = document.getElementById('captchaAnswer');
+    
+    // Generate CAPTCHA
+    function generateCaptcha() {
+        const operations = [
+            { text: 'What is 2 + 3?', answer: 5 },
+            { text: 'What is 7 - 4?', answer: 3 },
+            { text: 'What is 3 × 2?', answer: 6 },
+            { text: 'What is 8 ÷ 2?', answer: 4 },
+            { text: 'What is 5 + 7?', answer: 12 },
+            { text: 'What is 9 - 3?', answer: 6 },
+            { text: 'What is 4 × 3?', answer: 12 },
+            { text: 'What is 15 ÷ 3?', answer: 5 }
+        ];
+        
+        const selected = operations[Math.floor(Math.random() * operations.length)];
+        captchaQuestion.textContent = selected.text;
+        captchaExpected.value = selected.answer;
+    }
+    
+    // Password strength checker
+    function checkPasswordStrength(password) {
+        const length = password.length;
+        let strength = '';
+        let percentage = 0;
+        let className = '';
+        
+        if (length <= 10) {
+            strength = 'Weak - Password too short';
+            percentage = 25;
+            className = 'bg-danger';
+        } else if (length <= 17) {
+            strength = 'Moderate - Good length';
+            percentage = 65;
+            className = 'bg-warning';
+        } else {
+            strength = 'Strong - Excellent password';
+            percentage = 100;
+            className = 'bg-success';
+        }
+        
+        strengthBar.style.width = percentage + '%';
+        strengthBar.className = 'progress-bar ' + className;
+        strengthText.textContent = strength;
+        
+        return length > 10; // Return true if password is acceptable
+    }
+    
+    // Password validation
+    passwordInput.addEventListener('input', function() {
+        checkPasswordStrength(this.value);
+    });
+    
+    // Confirm password validation
+    confirmPasswordInput.addEventListener('input', function() {
+        if (passwordInput.value !== this.value) {
+            this.setCustomValidity('Passwords do not match');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+    
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const password = passwordInput.value;
+        const captchaAnswerValue = parseInt(captchaAnswer.value);
+        const captchaExpectedValue = parseInt(captchaExpected.value);
+        
+        // Check password strength
+        if (password.length <= 10) {
+            e.preventDefault();
+            alert('Password is too weak. Please use at least 11 characters.');
+            return;
+        }
+        
+        // Check CAPTCHA
+        if (captchaAnswerValue !== captchaExpectedValue) {
+            e.preventDefault();
+            alert('Security challenge answer is incorrect. Please try again.');
+            generateCaptcha(); // Generate new CAPTCHA
+            captchaAnswer.value = '';
+            return;
+        }
+    });
+    
+    // Initialize CAPTCHA
+    generateCaptcha();
+});
+</script>

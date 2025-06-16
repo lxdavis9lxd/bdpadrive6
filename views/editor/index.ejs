@@ -1,5 +1,5 @@
 <div class="row">
-    <div class="col-lg-8">
+    <div class="col-12">
         <!-- Editor Panel -->
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -7,6 +7,9 @@
                     <i class="fas fa-edit"></i> Editing: <%= node.name %>
                 </h4>
                 <div class="btn-group">
+                    <button type="button" class="btn btn-outline-info" id="toggleLayout">
+                        <i class="fas fa-columns"></i> Toggle Layout
+                    </button>
                     <form action="/editor/<%= node.node_id %>/save" method="POST" class="d-inline" id="saveForm">
                         <button type="submit" class="btn btn-success" id="saveBtn">
                             <i class="fas fa-save"></i> Save
@@ -33,46 +36,110 @@
                 <% } %>
 
                 <form action="/editor/<%= node.node_id %>/save" method="POST" id="editorForm">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">File Name</label>
-                        <input type="text" class="form-control" id="name" name="name" value="<%= node.name %>" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="tags" class="form-label">Tags</label>
-                        <input type="text" class="form-control" id="tags" name="tags" 
-                               value="<%= node.tags ? node.tags.join(', ') : '' %>"
-                               placeholder="tag1, tag2, tag3">
-                        <div class="form-text">
-                            Enter up to 5 alphanumeric tags separated by commas
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="name" class="form-label">File Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="<%= node.name %>" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tags" class="form-label">Tags</label>
+                            <input type="text" class="form-control" id="tags" name="tags" 
+                                   value="<%= node.tags ? node.tags.join(', ') : '' %>"
+                                   placeholder="tag1, tag2, tag3">
                         </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <label for="text" class="form-label">Content</label>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="previewMode">
-                                <label class="form-check-label" for="previewMode">
-                                    Preview Mode
-                                </label>
+                    <!-- Editor Layout Container -->
+                    <div id="editorLayout" class="row">
+                        <!-- Editor Column -->
+                        <div class="col-lg-12" id="editorColumn">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label for="text" class="form-label">Content</label>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <input type="radio" class="btn-check" name="editorMode" id="editMode" autocomplete="off" checked>
+                                        <label class="btn btn-outline-primary" for="editMode">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </label>
+                                        
+                                        <input type="radio" class="btn-check" name="editorMode" id="splitMode" autocomplete="off">
+                                        <label class="btn btn-outline-primary" for="splitMode">
+                                            <i class="fas fa-columns"></i> Split
+                                        </label>
+                                        
+                                        <input type="radio" class="btn-check" name="editorMode" id="previewMode" autocomplete="off">
+                                        <label class="btn btn-outline-primary" for="previewMode">
+                                            <i class="fas fa-eye"></i> Preview
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="editor-content">
+                                    <textarea class="form-control" id="text" name="text" rows="20" style="font-family: 'Courier New', monospace;"><%= node.text || '' %></textarea>
+                                </div>
+                                
+                                <div class="form-text" id="editorHelpText">
+                                    File content is written in Markdown format. Maximum size: 10KB.
+                                    Auto-save occurs every 30 seconds.
+                                </div>
                             </div>
                         </div>
                         
-                        <div id="editorContainer">
-                            <textarea class="form-control" id="text" name="text" rows="20"><%= node.text || '' %></textarea>
-                        </div>
-                        
-                        <div id="previewContainer" style="display: none;">
-                            <div class="border rounded p-3 bg-light" style="min-height: 400px;" id="markdownPreview"></div>
-                        </div>
-                        
-                        <div class="form-text">
-                            File content is written in Markdown format. Maximum size: 10KB.
-                            Auto-save occurs every 30 seconds.
+                        <!-- Preview Column -->
+                        <div class="col-lg-6" id="previewColumn" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Live Preview</label>
+                                <div class="border rounded p-3 bg-light" style="min-height: 400px; max-height: 500px; overflow-y: auto;" id="markdownPreview">
+                                    <p class="text-muted">Preview will appear here...</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Info and Sidebar -->
+<div class="row mt-3">
+    <div class="col-lg-8">
+        <!-- Markdown Cheat Sheet -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fab fa-markdown"></i> Markdown Cheat Sheet
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <small>
+                            <strong>Headers:</strong><br>
+                            <code># H1</code><br>
+                            <code>## H2</code><br>
+                            <code>### H3</code><br><br>
+                            
+                            <strong>Text:</strong><br>
+                            <code>**bold**</code><br>
+                            <code>*italic*</code><br>
+                            <code>`code`</code><br>
+                        </small>
+                    </div>
+                    <div class="col-md-6">
+                        <small>
+                            <strong>Lists:</strong><br>
+                            <code>- Item 1</code><br>
+                            <code>- Item 2</code><br><br>
+                            
+                            <strong>Links:</strong><br>
+                            <code>[text](url)</code><br><br>
+                            
+                            <strong>Code blocks:</strong><br>
+                            <code>```language<br>code here<br>```</code>
+                        </small>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -166,11 +233,17 @@
 
 <script>
 // Initialize markdown parser
-const md = window.markdownit();
+const md = window.markdownit({
+    html: true,
+    linkify: true,
+    typographer: true,
+    breaks: true
+});
 
 // Auto-save functionality
 let autoSaveTimer;
 let hasUnsavedChanges = false;
+let currentMode = 'edit'; // edit, split, preview
 
 function resetAutoSave() {
     if (autoSaveTimer) {
@@ -184,7 +257,7 @@ function autoSave() {
         const form = document.getElementById('editorForm');
         const formData = new FormData(form);
         
-        fetch(form.action, {
+        fetch(`/editor/<%= node.node_id %>/autosave`, {
             method: 'POST',
             body: formData
         }).then(response => {
@@ -213,53 +286,96 @@ function showAutoSaveIndicator() {
     }, 2000);
 }
 
+function updatePreview() {
+    const textArea = document.getElementById('text');
+    const markdownPreview = document.getElementById('markdownPreview');
+    
+    if (markdownPreview && (currentMode === 'split' || currentMode === 'preview')) {
+        const markdownText = textArea.value || '# Empty File\n\nThis file has no content.';
+        try {
+            markdownPreview.innerHTML = md.render(markdownText);
+        } catch (error) {
+            markdownPreview.innerHTML = '<div class="text-danger">Error rendering preview: ' + error.message + '</div>';
+        }
+    }
+}
+
+function setEditorMode(mode) {
+    currentMode = mode;
+    const editorColumn = document.getElementById('editorColumn');
+    const previewColumn = document.getElementById('previewColumn');
+    const textArea = document.getElementById('text');
+    
+    // Reset classes
+    editorColumn.className = 'col-lg-12';
+    previewColumn.style.display = 'none';
+    
+    switch (mode) {
+        case 'edit':
+            // Editor only
+            textArea.style.display = 'block';
+            break;
+            
+        case 'split':
+            // Side by side
+            editorColumn.className = 'col-lg-6';
+            previewColumn.style.display = 'block';
+            textArea.style.display = 'block';
+            updatePreview();
+            break;
+            
+        case 'preview':
+            // Preview only
+            editorColumn.className = 'col-lg-6';
+            previewColumn.style.display = 'block';
+            textArea.style.display = 'none';
+            updatePreview();
+            break;
+    }
+}
+
 // Track changes
 document.addEventListener('DOMContentLoaded', function() {
     const textArea = document.getElementById('text');
     const nameInput = document.getElementById('name');
     const tagsInput = document.getElementById('tags');
-    const previewMode = document.getElementById('previewMode');
-    const editorContainer = document.getElementById('editorContainer');
-    const previewContainer = document.getElementById('previewContainer');
-    const markdownPreview = document.getElementById('markdownPreview');
+    const editModeBtn = document.getElementById('editMode');
+    const splitModeBtn = document.getElementById('splitMode');
+    const previewModeBtn = document.getElementById('previewMode');
     
     // Track changes for auto-save
     [textArea, nameInput, tagsInput].forEach(input => {
         input.addEventListener('input', () => {
             hasUnsavedChanges = true;
             resetAutoSave();
+            
+            // Update preview in real-time if in split mode
+            if (currentMode === 'split' || currentMode === 'preview') {
+                updatePreview();
+            }
         });
     });
     
-    // Preview mode toggle
-    previewMode.addEventListener('change', function() {
-        if (this.checked) {
-            // Show preview
-            const markdownText = textArea.value;
-            markdownPreview.innerHTML = md.render(markdownText);
-            editorContainer.style.display = 'none';
-            previewContainer.style.display = 'block';
-        } else {
-            // Show editor
-            editorContainer.style.display = 'block';
-            previewContainer.style.display = 'none';
-        }
+    // Mode switching
+    editModeBtn.addEventListener('change', () => {
+        if (editModeBtn.checked) setEditorMode('edit');
     });
     
-    // Update preview when text changes
-    textArea.addEventListener('input', function() {
-        if (previewMode.checked) {
-            markdownPreview.innerHTML = md.render(this.value);
-        }
+    splitModeBtn.addEventListener('change', () => {
+        if (splitModeBtn.checked) setEditorMode('split');
     });
     
-    // Character count
+    previewModeBtn.addEventListener('change', () => {
+        if (previewModeBtn.checked) setEditorMode('preview');
+    });
+    
+    // Character count and validation
     textArea.addEventListener('input', function() {
         const text = this.value;
         const byteSize = new Blob([text]).size;
         const maxSize = 10 * 1024; // 10KB
         
-        let helpText = this.parentNode.querySelector('.form-text');
+        let helpText = document.getElementById('editorHelpText');
         const percentage = (byteSize / maxSize * 100).toFixed(1);
         
         if (byteSize > maxSize) {
@@ -271,19 +387,73 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Initial auto-save timer
-    resetAutoSave();
+    // Lock conflict detection
+    setInterval(checkForLockConflicts, 10000); // Check every 10 seconds
     
-    // Trigger initial character count
+    // Initial setup
+    resetAutoSave();
     textArea.dispatchEvent(new Event('input'));
+    setEditorMode('edit'); // Start in edit mode
+    
+    // Release lock on page unload
+    window.addEventListener('beforeunload', function(e) {
+        // Try to release lock synchronously
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(`/editor/<%= node.node_id %>/release-lock`, new FormData());
+        }
+        
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            return e.returnValue;
+        }
+    });
 });
 
-// Handle page unload with unsaved changes
-window.addEventListener('beforeunload', function(e) {
-    if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-        return e.returnValue;
+// Lock conflict detection
+async function checkForLockConflicts() {
+    try {
+        const response = await fetch(`/editor/<%= node.node_id %>/check-lock`);
+        const data = await response.json();
+        
+        if (data.conflict) {
+            showLockConflictDialog(data.lock);
+        }
+    } catch (error) {
+        console.error('Failed to check lock status:', error);
+    }
+}
+
+function showLockConflictDialog(lock) {
+    if (confirm(`This file is being edited by ${lock.user} in another session (${new Date(lock.createdAt).toLocaleString()}). Your changes may be overwritten. Would you like to force take control of the file?`)) {
+        // Force take lock
+        fetch(`/editor/<%= node.node_id %>/force-lock`, { method: 'POST' })
+            .then(response => {
+                if (response.ok) {
+                    location.reload(); // Refresh to get latest content
+                }
+            })
+            .catch(error => console.error('Failed to force lock:', error));
+    }
+}
+
+// Toggle layout function for backward compatibility
+function toggleLayout() {
+    const currentMode = document.querySelector('input[name="editorMode"]:checked').id;
+    if (currentMode === 'editMode') {
+        document.getElementById('splitMode').checked = true;
+        setEditorMode('split');
+    } else {
+        document.getElementById('editMode').checked = true;
+        setEditorMode('edit');
+    }
+}
+
+// Add event listener for toggle button
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('toggleLayout');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleLayout);
     }
 });
 </script>

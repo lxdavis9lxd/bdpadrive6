@@ -28,11 +28,13 @@ const authRoutes = require('./routes/auth');
 const explorerRoutes = require('./routes/explorer');
 const editorRoutes = require('./routes/editor');
 const dashboardRoutes = require('./routes/dashboard');
+const searchRoutes = require('./routes/search');
 
 app.use('/auth', authRoutes);
 app.use('/explorer', explorerRoutes);
 app.use('/editor', editorRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/search', searchRoutes);
 
 // Root route - redirect to auth for guests, explorer for authenticated users
 app.get('/', (req, res) => {

@@ -18,6 +18,16 @@
             </a>
             
             <% if (user) { %>
+            <!-- Search Form -->
+            <form class="d-flex mx-auto" action="/search" method="GET" style="width: 300px;">
+                <div class="input-group">
+                    <input class="form-control" type="search" name="q" placeholder="Search files..." aria-label="Search">
+                    <button class="btn btn-outline-light" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+            
             <div class="navbar-nav ms-auto">
                 <div class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -25,6 +35,7 @@
                     </a>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="/explorer"><i class="fas fa-folder"></i> Explorer</a></li>
+                        <li><a class="dropdown-item" href="/search"><i class="fas fa-search"></i> Search</a></li>
                         <li><a class="dropdown-item" href="/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
