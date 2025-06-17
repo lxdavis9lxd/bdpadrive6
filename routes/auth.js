@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { body } = require('express-validator');
 const apiClient = require('../utils/apiClient');
 const CryptoUtils = require('../utils/cryptoUtils');
 const security = require('../utils/security');
@@ -94,8 +95,13 @@ router.get('/reset-password/:token', requireGuest, (req, res) => {
 router.post('/login', 
   requireGuest,
   [
-    security.getValidationRules().username[0].withMessage('Please enter a valid username'),
-    security.getValidationRules().password[0].isLength({ min: 1 }).withMessage('Password is required')
+    body('username')
+      .isLength({ min: 1 })
+      .withMessage('Username is required')
+      .customSanitizer(value => security.sanitizeText(value)),
+    body('password')
+      .isLength({ min: 1 })
+      .withMessage('Password is required')
   ],
   security.handleValidationErrors,
   async (req, res) => {

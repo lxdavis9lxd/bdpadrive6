@@ -32,7 +32,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="/">
-                <img src="/images/bdpa-logo.png" alt="BDPA Logo" height="30" width="30" class="me-2">
+                <img src="/images/logo.png" alt="BDPA Logo" height="30" width="30" class="me-2">
                 <span>BDPADrive</span>
             </a>
             
@@ -90,10 +90,12 @@
 
     <!-- Main Content -->
     <main id="main-content" class="container-fluid container-md my-4 flex-grow-1">
-        <!-- Loading indicator -->
-        <div id="loading-indicator" class="d-none">
-            <div class="text-center">
-                <div class="spinner spinner-primary me-2"></div>
+        <!-- Loading indicator (hidden by default) -->
+        <div id="loading-indicator" class="d-none position-fixed top-50 start-50 translate-middle" style="z-index: 9999;">
+            <div class="text-center bg-white p-4 rounded shadow">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
                 <span>Loading...</span>
             </div>
         </div>

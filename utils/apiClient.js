@@ -3,8 +3,9 @@ const cache = require('./cache');
 
 class APIClient {
   constructor() {
-    this.baseURL = process.env.API_BASE_URL;
-    this.apiKey = process.env.API_KEY;
+    // Use environment variables with fallbacks for development
+    this.baseURL = process.env.API_BASE_URL || 'https://drive.api.hscc.bdpa.org/v1';
+    this.apiKey = process.env.API_KEY || 'dev-api-key-placeholder';
     this.maxRetries = 3;
     this.retryDelay = 1000; // 1 second
   }

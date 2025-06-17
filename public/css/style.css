@@ -11,6 +11,100 @@ body {
     line-height: 1.6;
     margin: 0;
     padding: 0;
+    min-height: 100vh;
+}
+
+/* Loading indicator styling */
+#loading-indicator {
+    z-index: 9999;
+}
+
+#loading-indicator .bg-white {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Auth pages get special background */
+body.auth-page {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Auth pages background container */
+.auth-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 2rem 0;
+}
+
+/* Professional auth card styling */
+.card.shadow-sm.border-0 {
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Form controls styling */
+.form-control.form-control-lg.border-0.bg-light {
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 16px;
+    background: rgba(248, 249, 250, 0.8) !important;
+    border: 2px solid transparent !important;
+    transition: all 0.3s ease;
+}
+
+.form-control.form-control-lg.border-0.bg-light:focus {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-color: #0d6efd !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1) !important;
+    transform: translateY(-1px);
+}
+
+/* Button styling */
+.btn.btn-primary.btn-lg {
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);
+    border: none;
+}
+
+.btn.btn-primary.btn-lg:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(13, 110, 253, 0.3);
+}
+
+.btn.btn-primary.btn-lg:disabled {
+    background: #6c757d;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Form labels */
+.form-label.text-dark.fw-medium {
+    color: #495057 !important;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+/* Alert styling */
+.alert.border-0 {
+    border-radius: 12px;
+    font-size: 14px;
+}
+
+/* Link styling */
+.text-primary.text-decoration-none.fw-medium {
+    color: #0d6efd !important;
+    transition: color 0.2s ease;
+}
+
+.text-primary.text-decoration-none.fw-medium:hover {
+    color: #0056b3 !important;
 }
 
 /* Performance optimizations */
@@ -32,6 +126,18 @@ img {
 }
 
 /* Loading spinners */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.125em;
+}
+
+.spinner-primary {
+    border-color: rgba(13, 110, 253, 0.3);
+    border-top-color: #0d6efd;
+}
+
+/* Legacy spinner class for compatibility */
 .spinner {
     display: inline-block;
     width: 20px;
@@ -44,11 +150,6 @@ img {
 
 @keyframes spin {
     to { transform: rotate(360deg); }
-}
-
-.spinner-primary {
-    border-color: rgba(13, 110, 253, 0.3);
-    border-top-color: #0d6efd;
 }
 
 /* Navigation */

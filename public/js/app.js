@@ -78,7 +78,7 @@ const LoadingManager = {
         const spinner = document.createElement('div');
         spinner.className = 'loading-spinner text-center p-3';
         spinner.innerHTML = `
-            <div class="spinner spinner-primary me-2"></div>
+            <div class="spinner-border spinner-border-sm text-primary me-2"></div>
             <span class="text-muted">${text}</span>
         `;
         
@@ -128,25 +128,65 @@ function debounce(func, wait) {
 document.addEventListener('DOMContentLoaded', function() {
     Performance.mark('app-init-start');
     
+    // Ensure loading indicator is hidden on page load
+    LoadingManager.hideGlobal();
+    
     try {
-        initializeFilePreview();
+        // Only initialize features that are relevant for the current page
+        const isAuthPage = window.location.pathname.includes('/auth/');
+        const isExplorerPage = window.location.pathname.includes('/explorer');
+        
+        if (!isAuthPage) {
+            initializeFilePreview();
+            initializeLazyLoading();
+            initializeInfiniteScroll();
+        }
+        
+        // Always initialize these
         initializeFormValidation();
         initializeTooltips();
-        initializeLazyLoading();
-        initializeInfiniteScroll();
         initializeErrorRecovery();
         
         Performance.mark('app-init-end');
         Performance.measure('app-initialization', 'app-init-start', 'app-init-end');
     } catch (error) {
         console.error('Error initializing app:', error);
-        ErrorHandler.show('Application failed to initialize properly. Please refresh the page.');
+        // Don't show error on auth pages to avoid confusion
+        if (!window.location.pathname.includes('/auth/')) {
+            ErrorHandler.show('Application failed to initialize properly. Please refresh the page.');
+        }
     }
 });
+
+// Ensure no loading states are shown inappropriately on auth pages
+if (window.location.pathname.includes('/auth/')) {
+    // Hide any loading indicators immediately on auth pages
+    document.addEventListener('DOMContentLoaded', function() {
+        LoadingManager.hideGlobal();
+        
+        // Remove any loading classes that might be left over
+        const body = document.body;
+        body.classList.remove('loading');
+        
+        // Ensure form buttons are in proper state
+        const submitButtons = document.querySelectorAll('button[type="submit"]');
+        submitButtons.forEach(btn => {
+            if (btn.disabled && btn.getAttribute('data-original-text')) {
+                btn.disabled = false;
+                btn.innerHTML = btn.getAttribute('data-original-text');
+            }
+        });
+    });
+}
 
 // Initialize file preview generation with caching
 function initializeFilePreview() {
     const fileCards = document.querySelectorAll('.file-preview[data-text]');
+    
+    // Exit early if no file preview elements exist
+    if (fileCards.length === 0) {
+        return;
+    }
     
     // Use Intersection Observer for lazy loading
     const observer = new IntersectionObserver((entries) => {
@@ -290,24 +330,40 @@ function initializeFormValidation() {
         form.addEventListener('submit', function(e) {
             const submitBtn = form.querySelector('button[type="submit"]');
             if (submitBtn && !submitBtn.disabled) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `<span class="spinner spinner-primary me-2"></span>Processing...`;
+                // Store original text before changing
+                if (!submitBtn.hasAttribute('data-original-text')) {
+                    submitBtn.setAttribute('data-original-text', submitBtn.innerHTML);
+                }
                 
-                // Re-enable after 5 seconds as fallback
-                setTimeout(() => {
-                    if (submitBtn.disabled) {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = submitBtn.getAttribute('data-original-text') || 'Submit';
-                    }
-                }, 5000);
+                // Only show loading for forms that actually submit to server
+                if (!form.hasAttribute('data-no-loading')) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status"></span>Processing...`;
+                    
+                    // Re-enable after 10 seconds as fallback
+                    setTimeout(() => {
+                        if (submitBtn.disabled) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = submitBtn.getAttribute('data-original-text') || 'Submit';
+                        }
+                    }, 10000);
+                }
             }
         });
         
-        // Store original button text
-        const submitBtn = form.querySelector('button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.setAttribute('data-original-text', submitBtn.innerHTML);
-        }
+        // Reset form state on page back/forward
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn && submitBtn.disabled) {
+                    submitBtn.disabled = false;
+                    const originalText = submitBtn.getAttribute('data-original-text');
+                    if (originalText) {
+                        submitBtn.innerHTML = originalText;
+                    }
+                }
+            }
+        });
     });
     
     // Password confirmation validation
@@ -368,6 +424,13 @@ function initializeTooltips() {
 
 // Initialize lazy loading for images
 function initializeLazyLoading() {
+    const lazyImages = document.querySelectorAll('img[data-src]');
+    
+    // Exit early if no lazy images exist
+    if (lazyImages.length === 0) {
+        return;
+    }
+    
     if ('IntersectionObserver' in window) {
         const imageObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -384,7 +447,7 @@ function initializeLazyLoading() {
             });
         });
         
-        document.querySelectorAll('img[data-src]').forEach(img => {
+        lazyImages.forEach(img => {
             imageObserver.observe(img);
         });
     }
