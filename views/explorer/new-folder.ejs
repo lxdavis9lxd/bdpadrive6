@@ -1,37 +1,63 @@
-<div class="row justify-content-center">
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="card-title mb-0">
-                    <i class="fas fa-folder-plus"></i> Create New Folder
-                </h4>
-            </div>
-            <div class="card-body">
-                <% if (error) { %>
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i> <%= error %>
+<div class="explorer-container creation-page">
+    <div class="explorer-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-folder-plus me-3"></i>
+                        Create New Folder
+                    </h1>
+                    <p class="mb-0 opacity-75">Organize your files with a new folder</p>
                 </div>
-                <% } %>
+                <div class="col-md-4 text-end">
+                    <i class="fas fa-folder fs-1 opacity-25"></i>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                <form action="/explorer/new-folder" method="POST">
-                    <input type="hidden" name="path" value="<%= path %>">
-                    
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Folder Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="name" name="name" required
-                               placeholder="My Documents">
-                        <div class="form-text">Enter the name for your new folder</div>
+    <div class="explorer-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-6">
+                    <div class="modern-file-card">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="file-icon directory me-3">
+                                <i class="fas fa-folder-plus"></i>
+                            </div>
+                            <h4 class="file-name mb-0">New Folder Details</h4>
+                        </div>
+
+                        <% if (error) { %>
+                        <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-3 mb-4">
+                            <i class="fas fa-exclamation-triangle me-2"></i><%= error %>
+                        </div>
+                        <% } %>
+
+                        <form action="/explorer/new-folder" method="POST" class="modern-form">
+                            <input type="hidden" name="path" value="<%= path %>">
+                            
+                            <div class="mb-4">
+                                <label for="name" class="form-label fw-semibold text-dark">
+                                    <i class="fas fa-signature me-2 text-primary"></i>
+                                    Folder Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control form-control-lg" id="name" name="name" required
+                                       placeholder="My Documents">
+                                <div class="form-text">Enter the name for your new folder</div>
+                            </div>
+                            
+                            <div class="file-actions d-flex gap-3 justify-content-center">
+                                <button type="submit" class="btn btn-primary btn-lg px-4">
+                                    <i class="fas fa-save me-2"></i>Create Folder
+                                </button>
+                                <a href="/explorer?path=<%= encodeURIComponent(path) %>" class="btn btn-outline-secondary btn-lg px-4">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Explorer
+                                </a>
+                            </div>
+                        </form>
                     </div>
-                    
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Create Folder
-                        </button>
-                        <a href="/explorer?path=<%= encodeURIComponent(path) %>" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Cancel
-                        </a>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>

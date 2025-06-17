@@ -1,67 +1,98 @@
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="card-title mb-0">
-                    <i class="fas fa-file-plus"></i> Create New File
-                </h4>
-            </div>
-            <div class="card-body">
-                <% if (error) { %>
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i> <%= error %>
+<div class="explorer-container creation-page">
+    <div class="explorer-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-file-plus me-3"></i>
+                        Create New File
+                    </h1>
+                    <p class="mb-0 opacity-75">Add a new file to your collection</p>
                 </div>
-                <% } %>
+                <div class="col-md-4 text-end">
+                    <i class="fas fa-file-alt fs-1 opacity-25"></i>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                <form action="/explorer/new-file" method="POST">
-                    <input type="hidden" name="path" value="<%= path %>">
-                    
-                    <div class="mb-3">
-                        <label for="name" class="form-label">File Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="name" name="name" required
-                               placeholder="my-document.md">
-                        <div class="form-text">Enter the name for your new file</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="tags" class="form-label">Tags <span class="text-muted">(optional)</span></label>
-                        <input type="text" class="form-control" id="tags" name="tags"
-                               placeholder="tag1, tag2, tag3">
-                        <div class="form-text">
-                            Enter up to 5 alphanumeric tags separated by commas. Tags help organize and search your files.
+    <div class="explorer-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="modern-file-card">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="file-icon file me-3">
+                                <i class="fas fa-file-plus"></i>
+                            </div>
+                            <h4 class="file-name mb-0">New File Details</h4>
                         </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="text" class="form-label">Content <span class="text-muted">(optional)</span></label>
-                        <textarea class="form-control" id="text" name="text" rows="12"
-                                  placeholder="# My Document
+                        <% if (error) { %>
+                        <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-3 mb-4">
+                            <i class="fas fa-exclamation-triangle me-2"></i><%= error %>
+                        </div>
+                        <% } %>
+
+                        <form action="/explorer/new-file" method="POST" class="modern-form">
+                            <input type="hidden" name="path" value="<%= path %>">
+                            
+                            <div class="mb-4">
+                                <label for="name" class="form-label fw-semibold text-dark">
+                                    <i class="fas fa-signature me-2 text-primary"></i>
+                                    File Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control form-control-lg" id="name" name="name" required
+                                       placeholder="my-document.md">
+                                <div class="form-text">Enter the name for your new file (with extension)</div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="tags" class="form-label fw-semibold text-dark">
+                                    <i class="fas fa-tags me-2 text-info"></i>
+                                    Tags <span class="text-muted">(optional)</span>
+                                </label>
+                                <input type="text" class="form-control form-control-lg" id="tags" name="tags"
+                                       placeholder="tag1, tag2, tag3">
+                                <div class="form-text">
+                                    Enter up to 5 alphanumeric tags separated by commas. Tags help organize and search your files.
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="text" class="form-label fw-semibold text-dark">
+                                    <i class="fas fa-edit me-2 text-success"></i>
+                                    Content <span class="text-muted">(optional)</span>
+                                </label>
+                                <textarea class="form-control" id="text" name="text" rows="15"
+                                          placeholder="# My Document
 
 Write your content here using Markdown...
 
 ## Features
 - **Bold text**
-- *Italic text*
+- *Italic text*  
 - [Links](https://example.com)
 - Code blocks
 
 ```javascript
 console.log('Hello, world!');
 ```"></textarea>
-                        <div class="form-text">
-                            File content is written in Markdown format. Maximum size: 10KB.
-                        </div>
+                                <div class="form-text">
+                                    File content is written in Markdown format. Maximum size: 10KB.
+                                </div>
+                            </div>
+                            
+                            <div class="file-actions d-flex gap-3 justify-content-center">
+                                <button type="submit" class="btn btn-primary btn-lg px-4">
+                                    <i class="fas fa-save me-2"></i>Create File
+                                </button>
+                                <a href="/explorer?path=<%= encodeURIComponent(path) %>" class="btn btn-outline-secondary btn-lg px-4">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Explorer
+                                </a>
+                            </div>
+                        </form>
                     </div>
-                    
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Create File
-                        </button>
-                        <a href="/explorer?path=<%= encodeURIComponent(path) %>" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Cancel
-                        </a>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
