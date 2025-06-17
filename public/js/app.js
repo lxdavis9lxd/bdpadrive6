@@ -326,6 +326,9 @@ function initializeFormValidation() {
     const forms = document.querySelectorAll('form');
     
     forms.forEach(form => {
+        // Skip loading states for auth pages
+        const isAuthPage = window.location.pathname.includes('/auth/');
+        
         // Prevent multiple submissions
         form.addEventListener('submit', function(e) {
             const submitBtn = form.querySelector('button[type="submit"]');
@@ -335,8 +338,8 @@ function initializeFormValidation() {
                     submitBtn.setAttribute('data-original-text', submitBtn.innerHTML);
                 }
                 
-                // Only show loading for forms that actually submit to server
-                if (!form.hasAttribute('data-no-loading')) {
+                // Only show loading for non-auth forms
+                if (!isAuthPage && !form.hasAttribute('data-no-loading')) {
                     submitBtn.disabled = true;
                     submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status"></span>Processing...`;
                     

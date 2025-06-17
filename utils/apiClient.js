@@ -5,7 +5,7 @@ class APIClient {
   constructor() {
     // Use environment variables with fallbacks for development
     this.baseURL = process.env.API_BASE_URL || 'https://drive.api.hscc.bdpa.org/v1';
-    this.apiKey = process.env.API_KEY || 'dev-api-key-placeholder';
+    this.apiKey = process.env.API_KEY || 'aaa96136-492f-4435-8177-714d8d64cf93';
     this.maxRetries = 3;
     this.retryDelay = 1000; // 1 second
   }
@@ -29,11 +29,15 @@ class APIClient {
           method,
           url: `${this.baseURL}${endpoint}`,
           headers: {
-            'Authorization': `bearer ${this.apiKey}`,
             'Content-Type': 'application/json'
           },
           timeout: 30000 // 30 second timeout
         };
+
+        // Only add Authorization header if we have a valid API key
+        if (this.apiKey && this.apiKey !== 'dev-api-key-placeholder' && this.apiKey !== 'test-api-key') {
+          config.headers['Authorization'] = `bearer ${this.apiKey}`;
+        }
 
         if (data) {
           config.data = data;
