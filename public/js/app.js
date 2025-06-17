@@ -134,10 +134,14 @@ document.addEventListener('DOMContentLoaded', function() {
             initializeInfiniteScroll();
         }
         
-        // Always initialize these
+        // Only initialize these
         initializeFormValidation();
         initializeTooltips();
-        initializeErrorRecovery();
+        
+        // Skip error recovery on auth pages to avoid confusing error messages
+        if (!isAuthPage) {
+            initializeErrorRecovery();
+        }
         
         Performance.mark('app-init-end');
         Performance.measure('app-initialization', 'app-init-start', 'app-init-end');
@@ -168,7 +172,33 @@ if (window.location.pathname.includes('/auth/')) {
         });
         
         console.log('Auth page loaded without loading indicators');
+        
+        // Completely suppress all error messages on auth pages
+        const originalErrorShow = ErrorHandler.show;
+        ErrorHandler.show = function(message, type) {
+            console.log('Error message suppressed on auth page:', message);
+            // Do nothing - suppress all error messages
+        };
+        
+        const originalHandleApiError = ErrorHandler.handleApiError;
+        ErrorHandler.handleApiError = function(error) {
+            console.log('API error suppressed on auth page:', error.message);
+            // Do nothing - suppress all API error messages
+        };
     });
+    
+    // Also suppress errors immediately without waiting for DOMContentLoaded
+    window.addEventListener('error', function(event) {
+        console.log('Global error suppressed on auth page:', event.error);
+        event.preventDefault();
+        return false;
+    }, true);
+    
+    window.addEventListener('unhandledrejection', function(event) {
+        console.log('Promise rejection suppressed on auth page:', event.reason);
+        event.preventDefault();
+        return false;
+    }, true);
 }
 
 // Initialize file preview generation with caching
@@ -389,17 +419,25 @@ function initializeFormValidation() {
         }
     });
     
-    // Real-time input validation
-    const textInputs = document.querySelectorAll('input[type="text"], input[type="email"], textarea');
-    textInputs.forEach(input => {
-        input.addEventListener('input', debounce(function() {
-            validateInput(this);
-        }, AppConfig.DEBOUNCE_DELAY));
-    });
+    // Real-time input validation (skip on auth pages)
+    const isAuthPage = window.location.pathname.includes('/auth/');
+    if (!isAuthPage) {
+        const textInputs = document.querySelectorAll('input[type="text"], input[type="email"], textarea');
+        textInputs.forEach(input => {
+            input.addEventListener('input', debounce(function() {
+                validateInput(this);
+            }, AppConfig.DEBOUNCE_DELAY));
+        });
+    }
 }
 
 // Validate individual input
 function validateInput(input) {
+    // Skip validation on auth pages
+    if (window.location.pathname.includes('/auth/')) {
+        return;
+    }
+    
     const value = input.value.trim();
     
     // File name validation

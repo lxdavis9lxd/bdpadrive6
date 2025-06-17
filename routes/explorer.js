@@ -97,7 +97,9 @@ router.get('/', requireAuth, async (req, res) => {
       sort,
       path,
       error: error || null,
-      success: success || null
+      success: success || null,
+      formatDate,
+      formatFileSize
     });
   } catch (err) {
     res.render('explorer/index', {
@@ -108,7 +110,9 @@ router.get('/', requireAuth, async (req, res) => {
       sort: 'name',
       path: '',
       error: err.message,
-      success: null
+      success: null,
+      formatDate,
+      formatFileSize
     });
   }
 });
