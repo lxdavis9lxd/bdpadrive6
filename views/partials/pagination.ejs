@@ -1,0 +1,128 @@
+<!-- Pagination Component -->
+<% if (pagination && pagination.totalPages > 1) { %>
+<div class="d-flex justify-content-between align-items-center mt-4 pagination-container">
+    <!-- Pagination Info -->
+    <div class="pagination-info">
+        <small class="text-muted">
+            Showing <%= pagination.startItem %>-<%= pagination.endItem %> of <%= pagination.totalItems %> items
+        </small>
+    </div>
+    
+    <!-- Pagination Controls -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination pagination-sm mb-0">
+            <!-- First Page -->
+            <% if (pagination.hasPrev) { %>
+            <li class="page-item">
+                <a class="page-link" href="<%= pagination.links.first %>" aria-label="First page">
+                    <i class="fas fa-angle-double-left"></i>
+                    <span class="d-none d-sm-inline"> First</span>
+                </a>
+            </li>
+            <% } %>
+            
+            <!-- Previous Page -->
+            <% if (pagination.hasPrev) { %>
+            <li class="page-item">
+                <a class="page-link" href="<%= pagination.links.prev %>" aria-label="Previous page">
+                    <i class="fas fa-angle-left"></i>
+                    <span class="d-none d-sm-inline"> Prev</span>
+                </a>
+            </li>
+            <% } else { %>
+            <li class="page-item disabled">
+                <span class="page-link">
+                    <i class="fas fa-angle-left"></i>
+                    <span class="d-none d-sm-inline"> Prev</span>
+                </span>
+            </li>
+            <% } %>
+            
+            <!-- Page Numbers -->
+            <% 
+            const visiblePages = [];
+            const maxVisible = 5;
+            const totalPages = pagination.totalPages;
+            const currentPage = pagination.currentPage;
+            
+            let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let end = Math.min(totalPages, start + maxVisible - 1);
+            
+            if (end - start + 1 < maxVisible) {
+                start = Math.max(1, end - maxVisible + 1);
+            }
+            
+            for (let i = start; i <= end; i++) {
+                visiblePages.push(i);
+            }
+            %>
+            
+            <% if (start > 1) { %>
+            <li class="page-item">
+                <a class="page-link" href="?page=1<%= typeof pagination.baseQuery !== 'undefined' ? '&' + pagination.baseQuery : '' %>">1</a>
+            </li>
+            <% if (start > 2) { %>
+            <li class="page-item disabled">
+                <span class="page-link">…</span>
+            </li>
+            <% } %>
+            <% } %>
+            
+            <% visiblePages.forEach(pageNum => { %>
+            <li class="page-item <%= pageNum === currentPage ? 'active' : '' %>">
+                <% if (pageNum === currentPage) { %>
+                <span class="page-link"><%= pageNum %></span>
+                <% } else { %>
+                <a class="page-link" href="?page=<%= pageNum %><%= typeof pagination.baseQuery !== 'undefined' ? '&' + pagination.baseQuery : '' %>"><%= pageNum %></a>
+                <% } %>
+            </li>
+            <% }); %>
+            
+            <% if (end < totalPages) { %>
+            <% if (end < totalPages - 1) { %>
+            <li class="page-item disabled">
+                <span class="page-link">…</span>
+            </li>
+            <% } %>
+            <li class="page-item">
+                <a class="page-link" href="?page=<%= totalPages %><%= typeof pagination.baseQuery !== 'undefined' ? '&' + pagination.baseQuery : '' %>"><%= totalPages %></a>
+            </li>
+            <% } %>
+            
+            <!-- Next Page -->
+            <% if (pagination.hasNext) { %>
+            <li class="page-item">
+                <a class="page-link" href="<%= pagination.links.next %>" aria-label="Next page">
+                    <span class="d-none d-sm-inline">Next </span>
+                    <i class="fas fa-angle-right"></i>
+                </a>
+            </li>
+            <% } else { %>
+            <li class="page-item disabled">
+                <span class="page-link">
+                    <span class="d-none d-sm-inline">Next </span>
+                    <i class="fas fa-angle-right"></i>
+                </span>
+            </li>
+            <% } %>
+            
+            <!-- Last Page -->
+            <% if (pagination.hasNext) { %>
+            <li class="page-item">
+                <a class="page-link" href="<%= pagination.links.last %>" aria-label="Last page">
+                    <span class="d-none d-sm-inline">Last </span>
+                    <i class="fas fa-angle-double-right"></i>
+                </a>
+            </li>
+            <% } %>
+        </ul>
+    </nav>
+</div>
+
+<!-- Mobile pagination summary -->
+<div class="d-sm-none text-center mt-2">
+    <small class="text-muted">
+        Page <%= pagination.currentPage %> of <%= pagination.totalPages %>
+    </small>
+</div>
+<% } %>

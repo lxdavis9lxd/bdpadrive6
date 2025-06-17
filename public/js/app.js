@@ -1,101 +1,272 @@
 // BDPADrive JavaScript Application
 
-document.addEventListener('DOMContentLoaded', function() {
-    initializeFilePreview();
-    initializeFormValidation();
-    initializeTooltips();
-});
+// Global app configuration
+const AppConfig = {
+    API_TIMEOUT: 30000,
+    DEBOUNCE_DELAY: 300,
+    RETRY_ATTEMPTS: 3,
+    PREVIEW_CACHE: new Map()
+};
 
-// Initialize file preview generation
-function initializeFilePreview() {
-    const fileCards = document.querySelectorAll('.file-preview');
+// Performance monitoring
+const Performance = {
+    startTime: Date.now(),
     
-    fileCards.forEach(preview => {
-        const encodedText = preview.getAttribute('data-text');
-        if (encodedText) {
+    mark(name) {
+        if (window.performance && window.performance.mark) {
+            window.performance.mark(name);
+        }
+    },
+    
+    measure(name, startMark, endMark) {
+        if (window.performance && window.performance.measure) {
             try {
-                const text = decodeURIComponent(encodedText);
-                generateFilePreview(text, preview);
-            } catch (error) {
-                console.error('Error decoding file text:', error);
-                showPreviewError(preview);
+                window.performance.measure(name, startMark, endMark);
+                const measure = window.performance.getEntriesByName(name)[0];
+                console.log(`${name}: ${measure.duration.toFixed(2)}ms`);
+            } catch (e) {
+                // Ignore measurement errors
             }
         }
-    });
+    }
+};
+
+// Error handling utilities
+const ErrorHandler = {
+    show(message, type = 'error') {
+        const alertClass = type === 'error' ? 'alert-danger' : 
+                          type === 'warning' ? 'alert-warning' : 'alert-info';
+        
+        const alert = document.createElement('div');
+        alert.className = `alert ${alertClass} alert-dismissible fade show`;
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('.container, .container-fluid') || document.body;
+        container.insertBefore(alert, container.firstChild);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+        }, 5000);
+    },
+    
+    handleApiError(error) {
+        let message = 'An unexpected error occurred. Please try again.';
+        
+        if (error.message.includes('Network Error')) {
+            message = 'Network connection error. Please check your internet connection.';
+        } else if (error.message.includes('timeout')) {
+            message = 'Request timed out. Please try again.';
+        } else if (error.message.includes('555')) {
+            message = 'Service temporarily unavailable. Retrying...';
+        }
+        
+        this.show(message, 'error');
+    }
+};
+
+// Loading state management
+const LoadingManager = {
+    show(element, text = 'Loading...') {
+        if (!element) return;
+        
+        const spinner = document.createElement('div');
+        spinner.className = 'loading-spinner text-center p-3';
+        spinner.innerHTML = `
+            <div class="spinner spinner-primary me-2"></div>
+            <span class="text-muted">${text}</span>
+        `;
+        
+        element.innerHTML = '';
+        element.appendChild(spinner);
+    },
+    
+    hide(element) {
+        if (!element) return;
+        
+        const spinner = element.querySelector('.loading-spinner');
+        if (spinner) {
+            spinner.remove();
+        }
+    },
+    
+    showGlobal(text = 'Loading...') {
+        const indicator = document.getElementById('loading-indicator');
+        if (indicator) {
+            indicator.querySelector('span').textContent = text;
+            indicator.classList.remove('d-none');
+        }
+    },
+    
+    hideGlobal() {
+        const indicator = document.getElementById('loading-indicator');
+        if (indicator) {
+            indicator.classList.add('d-none');
+        }
+    }
+};
+
+// Debounce utility for performance
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
 
-// Generate file preview from markdown text
-function generateFilePreview(markdownText, previewElement) {
+// Initialize application
+document.addEventListener('DOMContentLoaded', function() {
+    Performance.mark('app-init-start');
+    
     try {
-        // Check if markdown-it is available
+        initializeFilePreview();
+        initializeFormValidation();
+        initializeTooltips();
+        initializeLazyLoading();
+        initializeInfiniteScroll();
+        initializeErrorRecovery();
+        
+        Performance.mark('app-init-end');
+        Performance.measure('app-initialization', 'app-init-start', 'app-init-end');
+    } catch (error) {
+        console.error('Error initializing app:', error);
+        ErrorHandler.show('Application failed to initialize properly. Please refresh the page.');
+    }
+});
+
+// Initialize file preview generation with caching
+function initializeFilePreview() {
+    const fileCards = document.querySelectorAll('.file-preview[data-text]');
+    
+    // Use Intersection Observer for lazy loading
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const preview = entry.target;
+                const encodedText = preview.getAttribute('data-text');
+                
+                if (encodedText && !preview.classList.contains('preview-loaded')) {
+                    generateFilePreview(encodedText, preview);
+                    observer.unobserve(preview);
+                }
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    fileCards.forEach(preview => observer.observe(preview));
+}
+
+// Generate file preview with caching and error handling
+function generateFilePreview(encodedText, previewElement) {
+    try {
+        // Check cache first
+        if (AppConfig.PREVIEW_CACHE.has(encodedText)) {
+            const cached = AppConfig.PREVIEW_CACHE.get(encodedText);
+            previewElement.innerHTML = cached;
+            previewElement.classList.add('preview-loaded');
+            return;
+        }
+        
+        LoadingManager.show(previewElement, 'Generating preview...');
+        
+        const text = decodeURIComponent(encodedText);
+        
+        // Use requestIdleCallback for performance
+        if (window.requestIdleCallback) {
+            window.requestIdleCallback(() => {
+                generatePreviewContent(text, previewElement, encodedText);
+            });
+        } else {
+            setTimeout(() => {
+                generatePreviewContent(text, previewElement, encodedText);
+            }, 0);
+        }
+        
+    } catch (error) {
+        console.error('Error decoding file text:', error);
+        showPreviewError(previewElement, 'Failed to decode file content');
+    }
+}
+
+function generatePreviewContent(markdownText, previewElement, cacheKey) {
+    try {
         if (typeof markdownit === 'undefined') {
             showPreviewError(previewElement, 'Markdown parser not available');
             return;
         }
         
-        const md = markdownit();
-        const html = md.render(markdownText || '# Empty File\n\nThis file has no content.');
-        
-        // Create a temporary div to render the HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
-        tempDiv.className = 'markdown-preview';
-        tempDiv.style.cssText = `
-            position: absolute;
-            top: -9999px;
-            left: -9999px;
-            width: 300px;
-            height: 120px;
-            padding: 8px;
-            font-size: 12px;
-            line-height: 1.2;
-            background: white;
-            overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        `;
-        
-        document.body.appendChild(tempDiv);
-        
-        // Check if html2canvas is available
-        if (typeof html2canvas === 'undefined') {
-            // Fallback: show text preview
-            previewElement.innerHTML = `<div class="markdown-preview">${html}</div>`;
-            document.body.removeChild(tempDiv);
-            return;
-        }
-        
-        // Generate canvas from HTML
-        html2canvas(tempDiv, {
-            width: 300,
-            height: 120,
-            scale: 1,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff'
-        }).then(canvas => {
-            // Convert canvas to image
-            const img = document.createElement('img');
-            img.src = canvas.toDataURL('image/png');
-            img.alt = 'File preview';
-            img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; object-position: top left;';
-            
-            // Replace loading content with image
-            previewElement.innerHTML = '';
-            previewElement.appendChild(img);
-            
-            // Clean up
-            document.body.removeChild(tempDiv);
-        }).catch(error => {
-            console.error('Error generating preview:', error);
-            // Fallback: show text preview
-            previewElement.innerHTML = `<div class="markdown-preview">${html}</div>`;
-            document.body.removeChild(tempDiv);
+        const md = markdownit({
+            html: false, // Disable HTML for security
+            xhtmlOut: true,
+            breaks: true,
+            linkify: true
         });
         
+        const html = md.render(markdownText || '# Empty File\n\nThis file has no content.');
+        
+        // Create preview with proper sanitization
+        const sanitizedHtml = sanitizePreviewHtml(html);
+        const previewHtml = `<div class="markdown-preview">${sanitizedHtml}</div>`;
+        
+        // Cache the result
+        AppConfig.PREVIEW_CACHE.set(cacheKey, previewHtml);
+        
+        // Apply to element
+        previewElement.innerHTML = previewHtml;
+        previewElement.classList.add('preview-loaded');
+        
+        // Cleanup cache if it gets too large
+        if (AppConfig.PREVIEW_CACHE.size > 100) {
+            const firstKey = AppConfig.PREVIEW_CACHE.keys().next().value;
+            AppConfig.PREVIEW_CACHE.delete(firstKey);
+        }
+        
     } catch (error) {
-        console.error('Error generating file preview:', error);
-        showPreviewError(previewElement);
+        console.error('Error generating preview content:', error);
+        showPreviewError(previewElement, 'Failed to generate preview');
     }
+}
+
+// Sanitize HTML for security
+function sanitizePreviewHtml(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    
+    // Remove script tags and event handlers
+    const scripts = div.querySelectorAll('script');
+    scripts.forEach(script => script.remove());
+    
+    const allElements = div.querySelectorAll('*');
+    allElements.forEach(element => {
+        // Remove event handler attributes
+        for (let i = element.attributes.length - 1; i >= 0; i--) {
+            const attr = element.attributes[i];
+            if (attr.name.startsWith('on')) {
+                element.removeAttribute(attr.name);
+            }
+        }
+        
+        // Remove dangerous attributes
+        ['javascript:', 'data:', 'vbscript:'].forEach(protocol => {
+            if (element.getAttribute('href')?.includes(protocol) ||
+                element.getAttribute('src')?.includes(protocol)) {
+                element.removeAttribute('href');
+                element.removeAttribute('src');
+            }
+        });
+    });
+    
+    return div.innerHTML;
 }
 
 // Show preview error
@@ -107,10 +278,38 @@ function showPreviewError(previewElement, message = 'Preview unavailable') {
             </span>
         </div>
     `;
+    previewElement.classList.add('preview-loaded');
 }
 
-// Initialize form validation
+// Initialize form validation with security
 function initializeFormValidation() {
+    const forms = document.querySelectorAll('form');
+    
+    forms.forEach(form => {
+        // Prevent multiple submissions
+        form.addEventListener('submit', function(e) {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn && !submitBtn.disabled) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<span class="spinner spinner-primary me-2"></span>Processing...`;
+                
+                // Re-enable after 5 seconds as fallback
+                setTimeout(() => {
+                    if (submitBtn.disabled) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = submitBtn.getAttribute('data-original-text') || 'Submit';
+                    }
+                }, 5000);
+            }
+        });
+        
+        // Store original button text
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.setAttribute('data-original-text', submitBtn.innerHTML);
+        }
+    });
+    
     // Password confirmation validation
     const confirmPasswordInputs = document.querySelectorAll('input[name="confirmPassword"]');
     confirmPasswordInputs.forEach(input => {
@@ -131,178 +330,243 @@ function initializeFormValidation() {
         }
     });
     
-    // Tag validation
-    const tagInputs = document.querySelectorAll('input[name="tags"]');
-    tagInputs.forEach(input => {
-        input.addEventListener('input', function() {
-            const tags = this.value.split(',').map(tag => tag.trim()).filter(tag => tag);
-            
-            if (tags.length > 5) {
-                this.setCustomValidity('Maximum of 5 tags allowed');
-            } else {
-                // Check if all tags are alphanumeric
-                const invalidTags = tags.filter(tag => !/^[a-zA-Z0-9]+$/.test(tag));
-                if (invalidTags.length > 0) {
-                    this.setCustomValidity('Tags must be alphanumeric words');
-                } else {
-                    this.setCustomValidity('');
-                }
-            }
-        });
-    });
-    
-    // File size validation
-    const textAreas = document.querySelectorAll('textarea[name="text"]');
-    textAreas.forEach(textarea => {
-        textarea.addEventListener('input', function() {
-            const byteSize = new Blob([this.value]).size;
-            const maxSize = 10 * 1024; // 10KB
-            
-            if (byteSize > maxSize) {
-                this.setCustomValidity(`File content exceeds maximum size of 10KB`);
-            } else {
-                this.setCustomValidity('');
-            }
-        });
+    // Real-time input validation
+    const textInputs = document.querySelectorAll('input[type="text"], input[type="email"], textarea');
+    textInputs.forEach(input => {
+        input.addEventListener('input', debounce(function() {
+            validateInput(this);
+        }, AppConfig.DEBOUNCE_DELAY));
     });
 }
 
-// Initialize Bootstrap tooltips
+// Validate individual input
+function validateInput(input) {
+    const value = input.value.trim();
+    
+    // File name validation
+    if (input.name === 'name' || input.name === 'filename') {
+        const invalidChars = /[<>:"|?*\x00-\x1f]/;
+        if (invalidChars.test(value)) {
+            input.setCustomValidity('Filename contains invalid characters');
+            return;
+        }
+    }
+    
+    // Clear custom validity if all checks pass
+    input.setCustomValidity('');
+}
+
+// Initialize tooltips
 function initializeTooltips() {
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     if (typeof bootstrap !== 'undefined') {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     }
 }
 
-// Utility functions
-function showAlert(message, type = 'success') {
-    const alertContainer = document.getElementById('alert-container') || createAlertContainer();
-    
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type} alert-dismissible fade show`;
-    alert.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    
-    alertContainer.appendChild(alert);
-    
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-        if (alert.parentNode) {
-            alert.remove();
-        }
-    }, 5000);
-}
-
-function createAlertContainer() {
-    const container = document.createElement('div');
-    container.id = 'alert-container';
-    container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
-    document.body.appendChild(container);
-    return container;
-}
-
-// Format file size
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// Copy text to clipboard
-function copyToClipboard(text) {
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(text).then(() => {
-            showAlert('Copied to clipboard!', 'success');
-        }).catch(err => {
-            console.error('Failed to copy:', err);
-            fallbackCopyToClipboard(text);
+// Initialize lazy loading for images
+function initializeLazyLoading() {
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.getAttribute('data-src');
+                    if (src) {
+                        img.src = src;
+                        img.removeAttribute('data-src');
+                        img.classList.remove('lazy');
+                        imageObserver.unobserve(img);
+                    }
+                }
+            });
         });
-    } else {
-        fallbackCopyToClipboard(text);
+        
+        document.querySelectorAll('img[data-src]').forEach(img => {
+            imageObserver.observe(img);
+        });
     }
 }
 
-function fallbackCopyToClipboard(text) {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.cssText = 'position: fixed; top: -9999px; left: -9999px;';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
+// Initialize infinite scroll for pagination
+function initializeInfiniteScroll() {
+    const paginationContainer = document.querySelector('.pagination-container');
+    if (!paginationContainer) return;
     
-    try {
-        document.execCommand('copy');
-        showAlert('Copied to clipboard!', 'success');
-    } catch (err) {
-        console.error('Fallback copy failed:', err);
-        showAlert('Failed to copy to clipboard', 'error');
+    const nextPageBtn = document.querySelector('.pagination .page-item:last-child .page-link[href]');
+    if (!nextPageBtn) return;
+    
+    let loading = false;
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !loading) {
+                loading = true;
+                loadNextPage(nextPageBtn.href);
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    // Create a sentinel element
+    const sentinel = document.createElement('div');
+    sentinel.className = 'pagination-sentinel';
+    sentinel.style.height = '1px';
+    paginationContainer.appendChild(sentinel);
+    observer.observe(sentinel);
+}
+
+// Load next page via AJAX
+function loadNextPage(url) {
+    LoadingManager.showGlobal('Loading more items...');
+    
+    fetch(url, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        return response.text();
+    })
+    .then(html => {
+        // Parse the response and append new items
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newItems = doc.querySelectorAll('.file-card, .list-item');
+        
+        const container = document.querySelector('.row, .list-group');
+        if (container && newItems.length > 0) {
+            newItems.forEach(item => {
+                container.appendChild(item);
+            });
+            
+            // Re-initialize file previews for new items
+            initializeFilePreview();
+        }
+        
+        LoadingManager.hideGlobal();
+    })
+    .catch(error => {
+        console.error('Error loading next page:', error);
+        ErrorHandler.handleApiError(error);
+        LoadingManager.hideGlobal();
+    });
+}
+
+// Initialize error recovery mechanisms
+function initializeErrorRecovery() {
+    // Global error handler
+    window.addEventListener('error', function(event) {
+        console.error('Global error:', event.error);
+        ErrorHandler.show('An unexpected error occurred. The page will attempt to recover.');
+    });
+    
+    // Handle unhandled promise rejections
+    window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled promise rejection:', event.reason);
+        ErrorHandler.show('A background operation failed. Please try refreshing the page.');
+        event.preventDefault();
+    });
+    
+    // Network status monitoring
+    if ('onLine' in navigator) {
+        window.addEventListener('online', function() {
+            ErrorHandler.show('Connection restored.', 'info');
+        });
+        
+        window.addEventListener('offline', function() {
+            ErrorHandler.show('Connection lost. Some features may not work.', 'warning');
+        });
     }
     
-    document.body.removeChild(textArea);
+    // Add retry buttons to failed operations
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-retry')) {
+            e.preventDefault();
+            const action = e.target.getAttribute('data-action');
+            if (action === 'reload') {
+                location.reload();
+            } else if (action === 'retry-preview') {
+                const preview = e.target.closest('.file-preview');
+                if (preview) {
+                    const encodedText = preview.getAttribute('data-text');
+                    if (encodedText) {
+                        generateFilePreview(encodedText, preview);
+                    }
+                }
+            }
+        }
+    });
 }
 
-// Debounce function for performance
-function debounce(func, wait, immediate) {
-    let timeout;
-    return function executedFunction() {
-        const context = this;
-        const args = arguments;
-        
-        const later = function() {
-            timeout = null;
-            if (!immediate) func.apply(context, args);
-        };
-        
-        const callNow = immediate && !timeout;
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-        
-        if (callNow) func.apply(context, args);
-    };
+// Utility function for API calls with retry logic
+async function apiCall(url, options = {}) {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= AppConfig.RETRY_ATTEMPTS; attempt++) {
+        try {
+            const response = await fetch(url, {
+                ...options,
+                timeout: AppConfig.API_TIMEOUT
+            });
+            
+            if (response.status === 555) {
+                throw new Error('Service temporarily unavailable (555)');
+            }
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return response;
+        } catch (error) {
+            lastError = error;
+            
+            if (attempt < AppConfig.RETRY_ATTEMPTS && 
+                (error.message.includes('555') || error.message.includes('timeout'))) {
+                console.log(`API call failed, attempt ${attempt}/${AppConfig.RETRY_ATTEMPTS}:`, error.message);
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                continue;
+            }
+            
+            break;
+        }
+    }
+    
+    throw lastError;
 }
 
-// Loading state management
-function setLoadingState(element, loading = true) {
-    if (loading) {
-        element.classList.add('loading');
-        element.disabled = true;
-        
-        // Add spinner if it's a button
-        if (element.tagName === 'BUTTON') {
-            const originalText = element.innerHTML;
-            element.setAttribute('data-original-text', originalText);
-            element.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-        }
-    } else {
-        element.classList.remove('loading');
-        element.disabled = false;
-        
-        // Restore original button text
-        if (element.tagName === 'BUTTON' && element.hasAttribute('data-original-text')) {
-            element.innerHTML = element.getAttribute('data-original-text');
-            element.removeAttribute('data-original-text');
-        }
+// Performance optimization: preload next page
+function preloadNextPage() {
+    const nextPageLink = document.querySelector('.pagination .page-item:last-child .page-link[href]');
+    if (nextPageLink) {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = nextPageLink.href;
+        document.head.appendChild(link);
     }
 }
 
-// Global error handler
-window.addEventListener('error', function(event) {
-    console.error('Global error:', event.error);
-    showAlert('An unexpected error occurred. Please refresh the page and try again.', 'danger');
+// Initialize performance optimizations
+document.addEventListener('DOMContentLoaded', function() {
+    // Preload next page after a delay
+    setTimeout(preloadNextPage, 2000);
+    
+    // Report performance metrics
+    window.addEventListener('load', function() {
+        if (window.performance) {
+            const navigation = performance.getEntriesByType('navigation')[0];
+            const loadTime = navigation.loadEventEnd - navigation.loadEventStart;
+            
+            console.log('Performance metrics:', {
+                pageLoadTime: loadTime + 'ms',
+                domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart + 'ms',
+                totalLoadTime: navigation.loadEventEnd - navigation.fetchStart + 'ms'
+            });
+        }
+    });
 });
-
-// Export functions for use in templates
-window.BDPADrive = {
-    showAlert,
-    copyToClipboard,
-    formatFileSize,
-    setLoadingState,
-    debounce
-};

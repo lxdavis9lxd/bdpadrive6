@@ -20,7 +20,15 @@
     "markdown-it": "^14.0.0",
     "html2canvas": "^1.4.1",
     "crypto": "^1.0.1",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "compression": "^1.7.4",
+    "memorystore": "^1.6.7",
+    "dompurify": "^3.0.5",
+    "jsdom": "^23.0.1",
+    "memory-cache": "^0.2.0",
+    "express-validator": "^7.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

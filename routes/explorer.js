@@ -1,59 +1,99 @@
 const express = require('express');
 const router = express.Router();
 const apiClient = require('../utils/apiClient');
+const cache = require('../utils/cache');
+const pagination = require('../utils/pagination');
+const security = require('../utils/security');
 const { requireAuth, formatFileSize, formatDate, validateTags, validateTextContent, sortNodes, isSymlinkBroken } = require('../utils/helpers');
 
-// Explorer view
+// Explorer view with pagination
 router.get('/', requireAuth, async (req, res) => {
   try {
     const { user } = req.session;
     const { sort = 'name', path = '', error, success } = req.query;
+    const { page, limit, offset } = pagination.parseParams(req.query);
     
-    // Get all user's nodes
-    const response = await apiClient.searchNodes(user.username);
-    let nodes = response.nodes || [];
+    // Generate cache key for this request
+    const cacheKey = cache.searchKey(user.username, { sort, path, page, limit });
     
-    // Current directory node
-    let currentDir = null;
-    if (path) {
-      const dirResponse = await apiClient.getNodes(user.username, path);
-      currentDir = dirResponse.nodes[0];
+    // Try to get from cache first
+    let cachedResult = cache.get(cacheKey);
+    if (!cachedResult) {
+      // Get all user's nodes
+      const response = await apiClient.searchNodes(user.username);
+      let nodes = response.nodes || [];
       
-      if (!currentDir || currentDir.type !== 'directory') {
-        throw new Error('Directory not found');
+      // Current directory node
+      let currentDir = null;
+      if (path) {
+        const dirResponse = await apiClient.getNodes(user.username, path);
+        currentDir = dirResponse.nodes[0];
+        
+        if (!currentDir || currentDir.type !== 'directory') {
+          throw new Error('Directory not found');
+        }
+        
+        // Filter nodes to show only contents of current directory
+        nodes = nodes.filter(node => currentDir.contents.includes(node.node_id));
+      } else {
+        // Show root level nodes (not contained in any directory)
+        const allDirs = nodes.filter(node => node.type === 'directory');
+        const allContainedNodeIds = new Set();
+        
+        allDirs.forEach(dir => {
+          dir.contents.forEach(nodeId => allContainedNodeIds.add(nodeId));
+        });
+        
+        nodes = nodes.filter(node => !allContainedNodeIds.has(node.node_id));
       }
       
-      // Filter nodes to show only contents of current directory
-      nodes = nodes.filter(node => currentDir.contents.includes(node.node_id));
-    } else {
-      // Show root level nodes (not contained in any directory)
-      const allDirs = nodes.filter(node => node.type === 'directory');
-      const allContainedNodeIds = new Set();
+      // Sort nodes
+      nodes = sortNodes(nodes, sort);
       
-      allDirs.forEach(dir => {
-        dir.contents.forEach(nodeId => allContainedNodeIds.add(nodeId));
-      });
+      // Add additional properties for display
+      nodes = nodes.map(node => ({
+        ...node,
+        formattedSize: node.size ? formatFileSize(node.size) : '-',
+        formattedCreatedAt: formatDate(node.createdAt),
+        formattedModifiedAt: formatDate(node.modifiedAt || node.createdAt),
+        isBroken: node.type === 'symlink' ? isSymlinkBroken(node, response.nodes, user.username) : false
+      }));
       
-      nodes = nodes.filter(node => !allContainedNodeIds.has(node.node_id));
+      cachedResult = { nodes, currentDir };
+      
+      // Cache for 3 minutes
+      cache.set(cacheKey, cachedResult, 180000);
     }
     
-    // Sort nodes
-    nodes = sortNodes(nodes, sort);
+    const { nodes, currentDir } = cachedResult;
     
-    // Add additional properties for display
-    nodes = nodes.map(node => ({
-      ...node,
-      formattedSize: node.size ? formatFileSize(node.size) : '-',
-      formattedCreatedAt: formatDate(node.createdAt),
-      formattedModifiedAt: formatDate(node.modifiedAt || node.createdAt),
-      isBroken: node.type === 'symlink' ? isSymlinkBroken(node, response.nodes, user.username) : false
-    }));
+    // Apply pagination
+    const baseUrl = `/explorer?sort=${sort}&path=${encodeURIComponent(path)}`;
+    const paginatedResult = pagination.paginate(nodes, page, limit, baseUrl);
+    
+    // Build breadcrumb
+    const breadcrumb = [];
+    if (currentDir && path) {
+      const pathParts = path.split('/').filter(part => part);
+      let currentPath = '';
+      
+      pathParts.forEach(part => {
+        currentPath += part;
+        breadcrumb.push({
+          name: part,
+          path: currentPath
+        });
+        currentPath += '/';
+      });
+    }
     
     res.render('explorer/index', {
       title: 'File Explorer - BDPADrive',
       user,
-      nodes,
+      nodes: paginatedResult.items,
+      pagination: paginatedResult.pagination,
       currentDir,
+      breadcrumb,
       sort,
       path,
       error: error || null,

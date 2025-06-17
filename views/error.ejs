@@ -1,21 +1,45 @@
-<div class="text-center">
-    <h1 class="display-1"><%= title === 'Page Not Found' ? '404' : '500' %></h1>
-    <h2><%= title %></h2>
-    <p class="lead"><%= message %></p>
-    
-    <div class="mt-4">
-        <% if (user) { %>
-        <a href="/explorer" class="btn btn-primary">
-            <i class="fas fa-folder"></i> Go to Explorer
-        </a>
-        <% } else { %>
-        <a href="/auth/login" class="btn btn-primary">
-            <i class="fas fa-sign-in-alt"></i> Go to Login
-        </a>
-        <% } %>
-        
-        <a href="javascript:history.back()" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Go Back
-        </a>
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="text-center">
+            <div class="mb-4">
+                <i class="fas fa-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+            </div>
+            
+            <h1 class="display-4 mb-3"><%= title === 'Page Not Found' ? '404' : '500' %></h1>
+            <h2 class="h3 mb-3"><%= title %></h2>
+            <p class="lead text-muted mb-4"><%= message %></p>
+            
+            <% if (error && typeof error === 'string') { %>
+            <div class="alert alert-secondary text-start mb-4">
+                <small><pre class="mb-0"><%= error %></pre></small>
+            </div>
+            <% } %>
+            
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                <% if (user) { %>
+                <a href="/explorer" class="btn btn-primary">
+                    <i class="fas fa-folder"></i> Go to Explorer
+                </a>
+                <% } else { %>
+                <a href="/auth/login" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> Go to Login
+                </a>
+                <% } %>
+                
+                <button onclick="history.back()" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Go Back
+                </button>
+                
+                <button onclick="location.reload()" class="btn btn-outline-info">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+            </div>
+            
+            <div class="mt-4">
+                <small class="text-muted">
+                    If this problem persists, please contact support.
+                </small>
+            </div>
+        </div>
     </div>
 </div>
