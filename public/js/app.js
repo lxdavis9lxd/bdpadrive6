@@ -96,18 +96,13 @@ const LoadingManager = {
     },
     
     showGlobal(text = 'Loading...') {
-        const indicator = document.getElementById('loading-indicator');
-        if (indicator) {
-            indicator.querySelector('span').textContent = text;
-            indicator.classList.remove('d-none');
-        }
+        // Loading indicator has been removed from layout
+        console.log('Global loading indicator removed');
     },
     
     hideGlobal() {
-        const indicator = document.getElementById('loading-indicator');
-        if (indicator) {
-            indicator.classList.add('d-none');
-        }
+        // Loading indicator has been removed from layout
+        console.log('Global loading indicator removed');
     }
 };
 
@@ -127,9 +122,6 @@ function debounce(func, wait) {
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
     Performance.mark('app-init-start');
-    
-    // Ensure loading indicator is hidden on page load
-    LoadingManager.hideGlobal();
     
     try {
         // Only initialize features that are relevant for the current page
@@ -160,10 +152,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Ensure no loading states are shown inappropriately on auth pages
 if (window.location.pathname.includes('/auth/')) {
-    // Hide any loading indicators immediately on auth pages
+    // Clean up any loading states on auth pages
     document.addEventListener('DOMContentLoaded', function() {
-        LoadingManager.hideGlobal();
-        
         // Remove any loading classes that might be left over
         const body = document.body;
         body.classList.remove('loading');
@@ -176,6 +166,8 @@ if (window.location.pathname.includes('/auth/')) {
                 btn.innerHTML = btn.getAttribute('data-original-text');
             }
         });
+        
+        console.log('Auth page loaded without loading indicators');
     });
 }
 
@@ -326,20 +318,28 @@ function initializeFormValidation() {
     const forms = document.querySelectorAll('form');
     
     forms.forEach(form => {
-        // Skip loading states for auth pages
+        // Skip loading states for auth pages or forms with data-no-loading
         const isAuthPage = window.location.pathname.includes('/auth/');
+        const hasNoLoading = form.hasAttribute('data-no-loading');
         
         // Prevent multiple submissions
         form.addEventListener('submit', function(e) {
             const submitBtn = form.querySelector('button[type="submit"]');
             if (submitBtn && !submitBtn.disabled) {
-                // Store original text before changing
-                if (!submitBtn.hasAttribute('data-original-text')) {
-                    submitBtn.setAttribute('data-original-text', submitBtn.innerHTML);
-                }
                 
-                // Only show loading for non-auth forms
-                if (!isAuthPage && !form.hasAttribute('data-no-loading')) {
+                // For auth pages: only disable briefly to prevent double-click, no loading spinner
+                if (isAuthPage || hasNoLoading) {
+                    submitBtn.disabled = true;
+                    // Re-enable quickly to allow normal form submission
+                    setTimeout(() => {
+                        submitBtn.disabled = false;
+                    }, 1000);
+                } else {
+                    // For non-auth pages: show full loading state
+                    if (!submitBtn.hasAttribute('data-original-text')) {
+                        submitBtn.setAttribute('data-original-text', submitBtn.innerHTML);
+                    }
+                    
                     submitBtn.disabled = true;
                     submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status"></span>Processing...`;
                     
